@@ -1,0 +1,16 @@
+gdb ./simple
+>b 10
+Breakpoint 1 at 0x40059a: file simple.c, line 10
+>run
+Breakpoint 1, mistake1 () at simple.c:12
+12        int buf[] = {1, 1, 2, 3, 4, 5};
+>p buf
+$1 = {-134225496, 32767, 0, 0, 1, 0}
+>p buf[2]
+$2 = 0
+>n
+13 return buf;
+>p buf
+$3 = {1, 1, 2, 3, 4, 5}
+>p buf[2]
+$4 = 2
