@@ -9,7 +9,9 @@
 int *
 mistake1 ()
 {
-  int buf[] = { 1, 1, 2, 3, 4, 5 };
+  // int buf[] = { 1, 1, 2, 3, 4, 5 };
+  int *buf = malloc( sizeof(char) * 6);
+  buf[1] = 1;
   return buf;
 }
 
@@ -17,7 +19,7 @@ int *
 mistake2 ()
 {
   int *buf = malloc (sizeof (char) * 4);
-  buf[2] = 2;
+  buf[1] = 2;
   return buf;
 }
 
@@ -25,7 +27,7 @@ int *
 mistake3 ()
 {
   int mistake2_ = 0;
-  int *buf = (int *) &mistake2;
+  int *buf = (int *) &mistake2_;
   buf[0] = 3;
   return buf;
 }
