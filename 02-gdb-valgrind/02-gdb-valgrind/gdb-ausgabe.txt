@@ -1,4 +1,10 @@
-gdb ./simple
+//// Legende: ////
+>Eingabe
+Output
+==> Kommentar/Schlussfolgerung
+////
+
+>gdb ./simple
 >b 10
 Breakpoint 1 at 0x40059a: file simple.c, line 10
 >run
@@ -14,3 +20,48 @@ $2 = 0
 $3 = {1, 1, 2, 3, 4, 5}
 >p buf[2]
 $4 = 2
+>ptype buf
+type = int [6]
+
+==> buf hat den Typ int [6].
+
+>b 17
+Breakpoint 2 at 0x4005d2: file simple.c, line 17
+>c
+Breakpoint 2, mistake2 () at simple.c:19
+19        int *buf = malloc (sizeof  (char) * 4);
+>pt buf
+type = int *
+
+==> buf ist ein Pointer
+
+>c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000040060b in mistake3 () at simple.c:29
+29    buf[0] = 3;
+
+> list 29
+24  int *
+25  mistake3 ()
+26  {
+27    int mistake2_ = 0;
+28    int *buf = (int *) &mistake2;
+29    buf[0] = 3;
+30    return buf;
+31  }
+32  
+33  int *
+>backtrace
+#0  0x000000000040060b in mistake3 () at simple.c:29
+#1  0x0000000000400683 in main () at simple.c:46
+==> Die Frames #0 (Aufruf/Scope von mistake3) und #1 (Aufruf/Scope von main) sind auf dem Stack.
+>frame 1
+#1  0x0000000000400683 in main () at simple.c:46
+46    int *p[4] = { &mistake1 ()[1], &mistake2 ()[1], mistake3 (), mistake4 () };
+>p p
+$1 = {0x7fffffffdfa4, 0x601014, 0x7fffffffe0d0, 0x0}
+>call mistake4()
+$2 = (int *) 0x601030
+
