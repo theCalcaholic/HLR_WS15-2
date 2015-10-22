@@ -26,8 +26,8 @@ mistake2 ()
 int *
 mistake3 ()
 {
-  int mistake2_ = 0;
-  int *buf = (int *) &mistake2_;
+  int mistake2_ = malloc(sizeof(int));
+  int *buf = (int *) mistake2_;
   buf[0] = 3;
   return buf;
 }
@@ -36,8 +36,8 @@ int *
 mistake4 ()
 {
   int *buf = malloc (sizeof (char) * 4);
-  buf[4] = 4;
-  free (buf);
+  buf[0] = 4;
+  //free (buf);
   return buf;
 }
 
