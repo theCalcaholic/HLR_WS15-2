@@ -1,0 +1,26 @@
+line 12 : int buf[] = { 1, 1, 2, 3, 4, 5 };
+-> Adressen werden außerhalb der Funktion wieder zugreifbar, sodass
+diese Adressen mit hoher Wahrscheinlichkeit auf andere Werte zeigen werden
+
+line 20 : buf[2] = 2;
+-> In der Main-methode greifen wir auf buf[1] zu. Somit handelt
+es sich hier um einen Indexfehler
+
+line 28 : int *buf = (int *) &mistake2;
+-> mistake2 wurde nicht definiert
+
+line 29 : buf[0] = 3;
+-> Der Zeiger *buf wurde nicht alloziert, sodass die Adresse nach den Funktionsaufruf wieder freigegeben wird.
+
+line 37 :   buf[4] = 4;
+-> Einerseits wurde der Speicher buf[4] nicht alloziert,
+anderseits wird in der Main-methode auf buf[0] zugegriffen (Indexfehler).
+
+line 38 :     free (buf);
+-> Hier wird der Speicher von buf wieder freigegeben. In der Main-methode wird dieser aber nach den Funktionsaufruf noch gebraucht
+
+line > 38: "allozierter Speicher sollte wieder freigegeben werden!"
+
+
+
+
