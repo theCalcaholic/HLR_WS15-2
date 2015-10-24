@@ -7,10 +7,9 @@ wurde nur die Reihenfolge vertauscht.
 Lösungsvorschlag: Matrix[m2][i][j-1]
 
 line 96:   M = malloc (sizeof (double) * (N + 1) * (N - 1) * 2);
-Es wird im Programm noch mehr allozierter Speicher für die
-Matrix benötigt.
+Der benötigte Speicher für die Matrix(-Einträge) berechnet sich durch (Anzahl Spalten) * (Anzahl Zeilen) * (Größe eines Eintrags). Aus der verschachtelten for-Schleife in Zeile 102-104 ergibt sich Anzahl Zeilen = (N + 1). In Zeile 96 (siehe oben) wird jedoch (N - 1) für die Zeilenanzahl eingesetzt.
 Lösungsvorschlag:
-M = malloc (sizeof (double) * (N + 1) * (N - 1) * 2 * 2);
+M = malloc (sizeof (double) * (N + 1) * (N + 1) * 2);
 
 line 165: free (Matrix)
 Bevor Matrix gefreed werden kann, müssen vorher seine Einträge
@@ -19,7 +18,7 @@ Lösungsvorschlag:
 free (Matrix) in line 169
 
 line 166: 
-Außerdem muss M nocht gefreedet werden
+Außerdem muss M noch gefreedet werden
 Lösungsvorschlag:
 free(M);
 

@@ -93,7 +93,7 @@ allocateMatrices (void)
       errorQuit ();
     }				/* quit if error   */
 
-  M = malloc (sizeof (double) * (N + 1) * (N - 1) * 2 * 2);	/* allocate memory */
+  M = malloc (sizeof (double) * (N + 1) * (N + 1) * 2);
   if (M == 0)
     {
       errorQuit ();
