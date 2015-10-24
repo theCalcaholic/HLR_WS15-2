@@ -1,0 +1,24 @@
+line 230: - Matrix[j - 1][m2][i] + 4 * Matrix[m2][i][j] -
+In einen Funktionsaufruf von calculate wird die Matrix
+mit den Indizes (j - 1) = 2, m2 = 0 und i = 1 zugegriffen.
+Da der erste Index nur für die Werte 0 und 1 allokiert
+wurde,(line 78), kommt es hier zu einen Fehler. Vermutlich
+wurde nur die Reihenfolge vertauscht.
+Lösungsvorschlag: Matrix[m2][i][j-1]
+
+line 96:   M = malloc (sizeof (double) * (N + 1) * (N - 1) * 2);
+Der benötigte Speicher für die Matrix(-Einträge) berechnet sich durch (Anzahl Spalten) * (Anzahl Zeilen) * (Größe eines Eintrags). Aus der verschachtelten for-Schleife in Zeile 102-104 ergibt sich Anzahl Zeilen = (N + 1). In Zeile 96 (siehe oben) wird jedoch (N - 1) für die Zeilenanzahl eingesetzt.
+Lösungsvorschlag:
+M = malloc (sizeof (double) * (N + 1) * (N + 1) * 2);
+
+line 165: free (Matrix)
+Bevor Matrix gefreed werden kann, müssen vorher seine Einträge
+gefreed werden.
+Lösungsvorschlag:
+free (Matrix) in line 169
+
+line 166: 
+Außerdem muss M noch gefreedet werden
+Lösungsvorschlag:
+free(M);
+

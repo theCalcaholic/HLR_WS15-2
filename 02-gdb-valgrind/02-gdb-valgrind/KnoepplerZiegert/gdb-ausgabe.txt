@@ -1,0 +1,145 @@
+//// Legende: ////
+>Eingabe
+Output
+==> Kommentar/Schlussfolgerung
+////
+
+///Unterpunkt 1
+
+>gdb ./simple
+>b 10
+Breakpoint 1 at 0x40059a: file simple.c, line 10
+>run
+Breakpoint 1, mistake1 () at simple.c:12
+12        int buf[] = {1, 1, 2, 3, 4, 5};
+>p buf
+$1 = {-134225496, 32767, 0, 0, 1, 0}
+>p buf[2]
+$2 = 0
+>n
+13 return buf;
+>p buf
+$3 = {1, 1, 2, 3, 4, 5}
+>p buf[2]
+$4 = 2
+>ptype buf
+type = int [6]
+
+==> buf hat den Typ int [6].
+
+>b 17
+Breakpoint 2 at 0x4005d2: file simple.c, line 17
+>c
+Breakpoint 2, mistake2 () at simple.c:19
+19        int *buf = malloc (sizeof  (char) * 4);
+>pt buf
+type = int *
+
+==> buf ist ein Pointer
+
+>c
+Continuing.
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000040060b in mistake3 () at simple.c:29
+29    buf[0] = 3;
+
+> list 29
+24  int *
+25  mistake3 ()
+26  {
+27    int mistake2_ = 0;
+28    int *buf = (int *) &mistake2;
+29    buf[0] = 3;
+30    return buf;
+31  }
+32  
+33  int *
+>backtrace
+#0  0x000000000040060b in mistake3 () at simple.c:29
+#1  0x0000000000400683 in main () at simple.c:46
+==> Die Frames #0 (Aufruf/Scope von mistake3) und #1 (Aufruf/Scope von main) sind auf dem Stack.
+>frame 1
+#1  0x0000000000400683 in main () at simple.c:46
+46    int *p[4] = { &mistake1 ()[1], &mistake2 ()[1], mistake3 (), mistake4 () };
+>p p
+$1 = {0x7fffffffdfa4, 0x601014, 0x7fffffffe0d0, 0x0}
+>call mistake4()
+$2 = (int *) 0x601030
+
+
+//Unterpunkt 2
+
+> b mistake1
+Breakpoint 1 at 0x4005c1: file simple.c, line 12.
+> b mistake2
+Breakpoint 2 at 0x4005f9: file simple.c, line 19.
+> b mistake3
+Breakpoint 3 at 0x40061f: file simple.c, line 27.
+> b mistake4
+Breakpoint 4 at 0x400646: file simple.c, line 36.
+> run
+Breakpoint 1, mistake1 () at simple.c:12
+12        int buf[] = { 1, 1, 2, 3, 4, 5 };
+> n
+13        return buf;
+> p &buf[1]
+$2 = (int *) 0x7fffffffde84
+> p buf[1]
+$3 = 1
+==> Adresse 0x7fffffffde84 muss 1 beinhalten
+> c
+Continuing.
+Breakpoint 2, mistake2 () at simple.c:19
+19        int *buf = malloc (sizeof (char) * 4);
+> n
+20        buf[2] = 2;
+> n
+21        return buf;
+> p &buf[1]
+$4 = (int *) 0x602014
+> p buf[1]
+$5 = 0
+==> Hier sollte eigentlich eine 2 stehen, Indexfehler
+> c
+Continuing.
+Breakpoint 3, mistake3 () at simple.c:27
+27        int mistake2_ = 0;
+> n
+28        int *buf = (int *) &mistake2_;
+> n
+29        buf[0] = 3;
+> n
+30        return buf;
+> p &buf[0]
+$6 = (int *) 0x7fffffffde94
+> p buf[0]
+$7 = 3
+==> Adresse 0x7fffffffde94 soll 3 beinhalten
+> c
+Continuing.
+Breakpoint 4, mistake4 () at simple.c:36
+36        int *buf = malloc (sizeof (char) * 4);
+> n
+37        buf[4] = 4;
+> 
+38        free (buf);
+> 
+39        return buf;
+> p buf[0]
+$8 = 0
+> p &buf[0]
+$9 = (int *) 0x602030
+> n
+==> 0x602030 soll 4 beinhalten (Indexfehler)
+40      }
+> n
+main () at simple.c:48
+> printf "p[0] = %p, p[2] = %p, p[3] = %p \n",p[0],p[2],p[3] 
+p[0] = 0x7fffffffde84, p[2] = 0x7fffffffde94, p[3] = 0x602030 
+> printf "*p[0] = %d, *p[2] = %d, *p[3] = %d \n",*p[0],*p[2],*p[3] 
+*p[0] = 0, *p[2] = 0, *p[3] = 0 
+==>Alle haben die richtige Adresse, doch offensichtlich wurden diese Variablen überschrieben. -> malloc
+
+
+
