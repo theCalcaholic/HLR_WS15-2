@@ -7,6 +7,7 @@ LFLAGS = $(CFLAGS)
 LIBS   = -lm
 
 OBJS = partdiff-seq.o askparams.o displaymatrix.o
+SRCS = partdiff-seq.c askparams.c displaymatrix.c
 
 # Rule to create *.o from *.c
 .c.o:
@@ -17,9 +18,6 @@ all: partdiff-seq
 
 partdiff-seq: $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
-
-debug: $(OBJS) Makefile
-	$(CC) $(LFLAGS) -pg -o partdiff-seq $(OBJS) $(LIBS)
 
 clean:
 	$(RM) *.o *~ partdiff-seq gmon.out
