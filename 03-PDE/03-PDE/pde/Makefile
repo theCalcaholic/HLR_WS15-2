@@ -18,6 +18,9 @@ all: partdiff-seq
 partdiff-seq: $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
 
+debug: $(OBJS) Makefile
+	$(CC) $(LFLAGS) -pg -o partdiff-seq $(OBJS) $(LIBS)
+
 clean:
 	$(RM) *.o *~ partdiff-seq gmon.out
 
