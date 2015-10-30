@@ -1,0 +1,22 @@
+1. Batch Queueing ist eine Schedulingsstrategie, welches jeden
+ Job in einer oder mehreren Queues haltet und abhängig
+der verfügbaren Ressourcen, der erwartenden Ausführungszeit und
+der Priorität eines Jobs zur Ausführung bringt. Solch ein System
+ermöglicht einerseits das gleichzeitige Merken der Jobanfragen von mehreren Benutzern, als auch eine gerechte Aufteilung dieser Aufgaben an den Rechnernressourcen.
+
+2. SLURM, Moab Cluster Suite, OAR
+
+4. Es wird SLURM verwendet.
+
+5.squeue
+
+6.sview bietet ein grafisches Frontend.
+
+7.ja, mithilfe von scancel
+
+8.ja, es ist möglich.
+
+9.squeue -all
+
+10.backfill, builtin, wiki und wiki2. Es wird backfill genutzt.
+
