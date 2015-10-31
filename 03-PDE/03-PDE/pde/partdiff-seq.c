@@ -230,12 +230,12 @@ calculate (struct calculation_arguments* arguments, struct calculation_results *
       /* over all rows */
       for (j = 1; j < N; j++)
       {
-				star = -Matrix[m2][i-1][j] - Matrix[m2][i][j-1]  + 4.0 * Matrix[m2][i][j] - Matrix[m2][i][j+1] - Matrix[m2][i+1][j]
+				star = -Matrix[m2][i-1][j] - Matrix[m2][i][j-1]  + 4.0 * Matrix[m2][i][j] - Matrix[m2][i][j+1] - Matrix[m2][i+1][j];
 
 
 				residuum = getResiduum(arguments, options, i, j, star);
 
-				Matrix[m1][i][j] = Matrix[m2][i][j] + korrektur;
+				Matrix[m1][i][j] = Matrix[m2][i][j] + residuum;
 
 				residuum = (residuum < 0) ? -residuum : residuum;
 				maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
