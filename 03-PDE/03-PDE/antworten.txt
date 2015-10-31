@@ -1,7 +1,7 @@
 1. Batch Queueing ist eine Managementstrategie, welches unterschiedliche
 Jobs von verschiedenen Nutzern in einer oder mehreren Queues verwaltet.
 Ein entsprechendes System besteht außerdem noch aus einen Job-Scheduler,
-welches entsprechend bestimmter Schedulingskriterien die Reihenfolge
+welches entsprechend bestimmter Schedulingkriterien die Reihenfolge
 der Ausführung und die dafür notwendigen Betriebsmittel festlegt.
 
 
