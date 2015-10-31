@@ -1,0 +1,13 @@
+Hinweis: Alle Leistungsangaben beziehen sich auf den Aufruf mit den im Aufgabenblatt angegebenen Parametern auf dem DKRZ-Cluster.
+
+1. Vertauschen der Indexreihenfolge beim iterieren über die Matrix in Zeile 160-169.
+Es ist sinnvoll, jeweils erst über den inneren Index eines zweidimensionalen Arrays zu iterieren, da 1. alle Elemente des inneren Arrays nebeneinander im Speicher liegen und 2. jeweils das gesamte innere Array in den Speicher geladen wird.
+Leistungszuwachs: 79.18s -> 38.61s 
+
+2. Hinzufügen der Compilerflag -O3 für stärker leistungsoptimiertes compilieren.
+Leistungszuwachs: 38.61s -> 5.12s
+
+
+3. Ein bisschen Leistung (aber eigentlich nur statistisch messbar, daher verzichten wir hier auf konkrete Leistungsaufnahmen) lässt sich auch noch dadurch herausholen, dass man die Summanden zur Berechnung von start (Zeile 233) so umstellt, dass die Werte im Speicher möglichst nah beieinander liegen.
+
+4. Ebenfalls nur gering sichtbar ist die Leistung, die man durch Verzicht auf die Variable korrektur erreicht. Statt dieser kann einfach direkt die Variable residuum verwendet werden, wenn man die Änderung von Matrix[m1][i][j] (in Zeile 240) vor die änderung von residuum (in Zeile 237) vorzieht.
