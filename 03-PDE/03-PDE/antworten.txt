@@ -1,22 +1,69 @@
-1. Batch Queueing ist eine Schedulingsstrategie, welches jeden
- Job in einer oder mehreren Queues haltet und abhängig
-der verfügbaren Ressourcen, der erwartenden Ausführungszeit und
-der Priorität eines Jobs zur Ausführung bringt. Solch ein System
-ermöglicht einerseits das gleichzeitige Merken der Jobanfragen von mehreren Benutzern, als auch eine gerechte Aufteilung dieser Aufgaben an den Rechnernressourcen.
+1. Batch Queueing ist eine Managementstrategie, welches unterschiedliche
+Jobs von verschiedenen Nutzern in einer oder mehreren Queues verwaltet.
+Ein entsprechendes System besteht außerdem noch aus einen Job-Scheduler,
+welches entsprechend bestimmter Schedulingskriterien die Reihenfolge
+der Ausführung und die dafür notwendigen Betriebsmittel festlegt.
+
 
 2. SLURM, Moab Cluster Suite, OAR
 
 4. Es wird SLURM verwendet.
 
-5.squeue
+5.squeue listet Informationen über laufende und wartende Jobs auf.
 
-6.sview bietet ein grafisches Frontend.
+6.sview bietet ein grafisches Frontend, überwacht und
+steuert laufende und wartende Jobs. Lässt Statusabfragen und -änderungen der verfügbaren Partionen zu.
 
 7.ja, mithilfe von scancel
 
 8.ja, es ist möglich.
 
-9.squeue -all
+9.squeue -all und für mehr details scontrol show job 
 
-10.backfill, builtin, wiki und wiki2. Es wird backfill genutzt.
+10.backfill, builtin, wiki, wiki2 und gang.
+scontrol show config | grep SchedulerType
+SchedulerType           = sched/backfill
+
+
+11.
+????@cluster:~⟫ salloc -N 1 -w west1 
+salloc: Granted job allocation 95943
+????@cluster:~⟫ hostname
+cluster
+????@cluster:~⟫ exit
+exit
+salloc: Relinquishing job allocation 95943
+
+12. Das Timeout einer Allokierung hängt von dem Timeout der Partition
+ab.
+
+sinfo
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+cluster*     up    3:00:00      1  alloc west1
+cluster*     up    3:00:00      9   idle west[2-10]
+compute      up    6:00:00      9  down* amd[1-5],nehalem[1-4]
+compute      up    6:00:00      1   comp nehalem5
+abu          up    6:00:00      5  alloc abu[1-5]
+magny        up 1-00:00:00      1   idle magny1
+
+
+-> Da die Partition magny den höchsten TimeLimit hat, sollte jede 24h alle derzeitig allokierten Knoten spätestens freigegeben worden sein.
+
+
+13.
+Man kann mithilfe
+scontrol show Job <jobid> | grep -i priority
+die Priorität einsehen.
+
+Man kann die Priorität auf 0 setzen
+scontrol update jobid=<jobid> priority=0
+
+Ansonsten wird empfohlen den nicewert zu ändern
+scontrol update jobid=<jobid> nice=<positiver wert>.
+Für negative nice-values werden rootrechte benötigt.
+
+14.
+Wie in sinfo zu sehen haben wir 4 partitionen. Mit den Flag
+-p <partition> können wir eine andere Partition aussuchen.
+
 
