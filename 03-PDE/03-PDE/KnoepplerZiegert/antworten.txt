@@ -1,0 +1,72 @@
+1.1 Batch Queueing ist eine Managementstrategie, welches unterschiedliche
+Jobs von verschiedenen Nutzern in einer oder mehreren Queues verwaltet.
+Ein entsprechendes System besteht außerdem noch aus einen Job-Scheduler,
+welches entsprechend bestimmter Schedulingkriterien die Reihenfolge
+der Ausführung und die dafür notwendigen Betriebsmittel festlegt.
+
+
+1.2 SLURM, Moab Cluster Suite, OAR
+
+1.4 Es wird SLURM verwendet.
+
+1.5 squeue listet Informationen über laufende und wartende Jobs auf.
+
+1.6 sview bietet ein grafisches Frontend, überwacht und
+steuert laufende und wartende Jobs. Lässt Statusabfragen und -änderungen der verfügbaren Partionen zu.
+
+1.7 ja, mithilfe von scancel
+
+1.8 ja, es ist möglich.
+
+1.9 squeue -all und für mehr details scontrol show job 
+
+1.10 backfill, builtin, wiki, wiki2 und gang.
+scontrol show config | grep SchedulerType
+SchedulerType           = sched/backfill
+
+
+1.11
+????@cluster:~⟫ salloc -N 1 -w west1 
+salloc: Granted job allocation 95943
+????@cluster:~⟫ hostname
+cluster
+????@cluster:~⟫ exit
+exit
+salloc: Relinquishing job allocation 95943
+
+1.12 Das Timeout einer Allokierung hängt von dem Timeout der Partition
+ab.
+
+sinfo
+PARTITION AVAIL  TIMELIMIT  NODES  STATE NODELIST
+cluster*     up    3:00:00      1  alloc west1
+cluster*     up    3:00:00      9   idle west[2-10]
+compute      up    6:00:00      9  down* amd[1-5],nehalem[1-4]
+compute      up    6:00:00      1   comp nehalem5
+abu          up    6:00:00      5  alloc abu[1-5]
+magny        up 1-00:00:00      1   idle magny1
+
+
+-> Da die Partition magny den höchsten TimeLimit hat, sollte jede 24h alle derzeitig allokierten Knoten spätestens freigegeben worden sein.
+
+
+1.13
+Man kann mithilfe
+scontrol show Job <jobid> | grep -i priority
+die Priorität einsehen.
+
+Man kann die Priorität auf 0 setzen
+scontrol update jobid=<jobid> priority=0
+
+Ansonsten wird empfohlen den nicewert zu ändern
+scontrol update jobid=<jobid> nice=<positiver wert>.
+Für negative nice-values werden rootrechte benötigt.
+
+1.14
+Wie in sinfo zu sehen haben wir 4 partitionen. Mit den Flag
+-p <partition> können wir eine andere Partition aussuchen.
+
+
+2.4.1 Es ist auffallend, dass die Reihenfolge der Scripte immer unterschiedlich ist -  dies ist nicht weiter verwunderlich, da der exakte Zeitpunkt, zu dem ein Job ausgeführt wird von zahlreichen Faktoren (Betriebssystem-Scheduling) abhängt.
+
+2.4.2 Das wäre möglich (mittels redirection operator >), aber nicht ratsam, da durch die parallele Ausführung Konflikte wegen gleichzeitiger Dateizugriffe entstehen könnten.
