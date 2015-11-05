@@ -223,6 +223,12 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 
 		maxresiduum = 0;
 
+    #pragma omp parallel for \
+			num_threads(options->number) \
+			private(j, star, residuum) \
+			reduction(max:maxresiduum) \
+			shared(Matrix_Out, Matrix_In) \
+			schedule(dynamic, 4)
 		/* over all rows */
 		for (i = 1; i < N; i++)
 		{

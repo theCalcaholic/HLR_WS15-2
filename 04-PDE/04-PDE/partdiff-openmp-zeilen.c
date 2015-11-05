@@ -233,6 +233,12 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
+    #pragma omp parallel for \
+			num_threads(options->number) \
+			private(star, residuum) \
+			reduction(max:maxresiduum) \
+			shared(Matrix_Out, Matrix_In) \
+			schedule(dynamic, 4)
 			/* over all columns */
 			for (j = 1; j < N; j++)
 			{
