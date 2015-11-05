@@ -18,9 +18,9 @@ all: partdiff-seq partdiff-openmp partdiff-openmp-element partdiff-openmp-zeilen
 partdiff-seq: partdiff-seq.o $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)
 
-#partdiff-openmp: partdiff-openmp-zeilen
+partdiff-openmp: partdiff-openmp-zeilen
 
-partdiff-openmp-zeilen: partdiff-openmp-zeilen.o $(OBJS) Makefile
+partdiff-openmp-%: partdiff-openmp-%.o $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)
 
 clean:
@@ -32,5 +32,11 @@ partdiff-seq.o: partdiff-seq.c Makefile
 
 partdiff-openmp-zeilen.o: partdiff-openmp.c 
 	$(CC) -c -D rows  $(CFLAGS) partdiff-openmp.c -o partdiff-openmp-zeilen.o
+
+partdiff-openmp-spalten.o: partdiff-openmp.c
+	$(CC) -c -D columns $(CFLAGS) partdiff-openmp.c -o partdiff-openmp-spalten.o
+
+partdiff-openmp-element.o: partdiff-openmp.c
+	$(CC) -c -D element $(CFLAGS) partdiff-openmp.c -o partdiff-openmp-element.o
 
 askparams.o: askparams.c Makefile
