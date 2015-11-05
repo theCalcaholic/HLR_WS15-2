@@ -225,12 +225,12 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 
     #pragma omp parallel for \
 			num_threads(options->number) \
-			private(j, star, residuum) \
+			private(i, star, residuum) \
 			reduction(max:maxresiduum) \
 			shared(Matrix_Out, Matrix_In) \
 			schedule(dynamic, 4)
-		/* over all rows */
-		for (i = 1; i < N; i++)
+		/* over all columns */
+		for (j = 1; j < N; j++)
 		{
 			double fpisin_i = 0.0;
 
@@ -239,8 +239,8 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
-			/* over all columns */
-			for (j = 1; j < N; j++)
+			/* over all rows */
+			for (i = 1; i < N; i++)
 			{
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 

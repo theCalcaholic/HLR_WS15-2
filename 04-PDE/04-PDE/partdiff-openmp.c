@@ -184,7 +184,7 @@ static
 void
 calculate (struct calculation_arguments const* arguments, struct calculation_results *results, struct options const* options)
 {
-	int i, j;                                   /* local variables for loops  */
+	int i, j, k, l;                                   /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
 	double star;                                /* four times center value minus 4 neigh.b values */
 	double residuum;                            /* residuum of current iteration                  */
@@ -222,16 +222,23 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 		double** Matrix_In  = arguments->Matrix[m2];
 
 		maxresiduum = 0;
-
-    #pragma omp parallel for \
-			num_threads(options->number) \
-			private(j, star, residuum) \
-			reduction(max:maxresiduum) \
-			shared(Matrix_Out, Matrix_In) \
-			schedule(dynamic, 4)
+		
+		#if !defined element
+			#pragma omp parallel for \
+				num_threads(options->number) \
+				private(l, i, j, star, residuum) \
+				reduction(max:maxresiduum) \
+				shared(Matrix_Out, Matrix_In) \
+				schedule(dynamic, 4)
+		#endif
 		/* over all rows */
-		for (i = 1; i < N; i++)
+		for (k = 1; k < N; k++)
 		{
+			#if defined columns
+				j = k;
+			#else
+				i = k;
+			#endif
 			double fpisin_i = 0.0;
 
 			if (options->inf_func == FUNC_FPISIN)
@@ -239,9 +246,22 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
+			#if defined element
+				#pragma omp parallel for \
+					num_theads(options->number) \
+					private(j, star, residuum) \
+					reduction(max:maxresiduum) \
+					shared(Matrix_Out, Matrix_In) \
+					schedule(dynamic)
+			#endif
 			/* over all columns */
-			for (j = 1; j < N; j++)
+			for (l = 1; l < N; l++)
 			{
+				#if defined columns
+					i = l;
+				#else
+					j = l;
+				#endif
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
 				if (options->inf_func == FUNC_FPISIN)
