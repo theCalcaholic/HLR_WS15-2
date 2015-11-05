@@ -18,7 +18,8 @@ all: partdiff-seq partdiff-openmp partdiff-openmp-element partdiff-openmp-zeilen
 partdiff-seq: partdiff-seq.o $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)
 
-partdiff-openmp: partdiff-openmp-zeilen
+partdiff-openmp: partdiff-openmp-zeilen.o
+	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)
 
 partdiff-openmp-%: partdiff-openmp-%.o $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)

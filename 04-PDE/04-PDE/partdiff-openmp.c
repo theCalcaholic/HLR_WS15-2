@@ -184,7 +184,7 @@ static
 void
 calculate (struct calculation_arguments const* arguments, struct calculation_results *results, struct options const* options)
 {
-	int i, j, k, l;                                   /* local variables for loops  */
+	int i, j, k, l = 0;                         /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
 	double star;                                /* four times center value minus 4 neigh.b values */
 	double residuum;                            /* residuum of current iteration                  */
@@ -216,25 +216,28 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 
+
 	while (term_iteration > 0)
 	{
+		maxresiduum = 0;
+		
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
 
-		maxresiduum = 0;
-		
-		#if !defined element
-			#pragma omp parallel for \
-				num_threads(options->number) \
-				private(l, i, j, star, residuum) \
-				reduction(max:maxresiduum) \
-				shared(Matrix_Out, Matrix_In) \
+		#pragma omp parallel \
+			private(i, j, star, residuum) \
+			num_threads(options->number) \
+			reduction(max:maxresiduum) \
+			shared(Matrix_Out, Matrix_In) 
+		#ifndef element
+			#pragma omp for \
+				private(l) \
 				schedule(dynamic, 4)
 		#endif
 		/* over all rows */
 		for (k = 1; k < N; k++)
 		{
-			#if defined columns
+			#ifdef columns
 				j = k;
 			#else
 				i = k;
@@ -246,12 +249,8 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
-			#if defined element
-				#pragma omp parallel for \
-					num_theads(options->number) \
-					private(j, star, residuum) \
-					reduction(max:maxresiduum) \
-					shared(Matrix_Out, Matrix_In) \
+			#ifdef element
+				#pragma omp for \
 					schedule(dynamic)
 			#endif
 			/* over all columns */
@@ -279,6 +278,7 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				Matrix_Out[i][j] = star;
 			}
 		}
+		#pragma omp barrier
 
 		results->stat_iteration++;
 		results->stat_precision = maxresiduum;
