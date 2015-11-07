@@ -17,6 +17,9 @@
 \usepackage{standalone}
 \makeatletter
 
+\pgfplotsset{compat=1.11}
+\usepgfplotslibrary{fillbetween}
+
 \usetikzlibrary{snakes,arrows,shapes}
 \newwrite\dotfile
 
@@ -99,17 +102,37 @@
     ymax=200,
     width=\textwidth
   ]
-    \addplot[color=red, mark=*] 
-        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run1.dat};
+%    \path[name path=xaxis] (axis cs:1, 0) -- (axis cs:0, 0);
+    %\addplot[color=red, mark=*] 
+    %    table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run1.dat};
     \addplot[color=blue, mark=*] 
         table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run2.dat};
     \addplot[color=green, mark=*] 
         table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run3.dat};
     \addplot[color=purple, mark=*] 
         table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run4.dat};
-    \legend{Testrun 1, Testrun 2, Testrun 3}
+    \legend{Testrun 1, Testrun 2, Testrun 3, ideal}
+    \addplot[name path=perfectF,
+        thick,
+        color=yellow, mark=x]
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_perfect.dat};
+%    \addplot[
+%      thick,:x
+%      color=yellow,
+%      fill=yellow,
+%      fill opacity=1]
+%    fill between[
+%      of=perfectF and xaxis,
+%      soft clip={domain=0:1},
+%    ];
   \end{axis}
 \end{tikzpicture}
+
+\subsection{Interpretation:}
+Eine Verdoppelung der Threadzahl halbiert bis zu dem Schritt von 5 auf 10 Prozessoren die Berechnungszeit einigermaßen genau, d.h. es ist uns gelungen, die verwendete Hardware bei diesem Problem bis zu einer Verteilung auf 12 Akteure (Kerne) sehr effizient auszunutzen.Erst beim der Verwendung von mehr als 8. Kernen weicht der Leistungszuwachs deutlich von der idealen Funktion (Berechnungszeit mit einem Kern = $\frac{1}{x} /cdot $ Berechnungszeit mit x Kernen, hier eingezeichnet in gelb) ab.
+Jedoch ist die Verdopplung der verfügbaren Hardware natürlich ab gewissen Grenzen sehr teuer.
+
+
 
 \section{variable Anzahl Interlines}
 
