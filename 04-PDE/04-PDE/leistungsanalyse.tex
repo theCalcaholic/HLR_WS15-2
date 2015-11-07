@@ -2,6 +2,7 @@
 \usepackage[x11names, rgb]{xcolor}
 \usepackage[utf8]{inputenc}
 \usepackage{tikz}
+\usepackage{amsmath}
 \usepackage{geometry}
 \usepackage{fancyhdr}
 \usepackage{amsmath,amsthm,amssymb}
@@ -99,9 +100,8 @@
     ymax=200,
     width=\textwidth
   ]
-    \addplot[color=red, mark=*] 
-        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run1.dat};
-    \addplot[color=blue, mark=*] 
+  
+    \addplot[color=blue, mark=*]
         table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run2.dat};
     \addplot[color=green, mark=*] 
         table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run3.dat};
@@ -110,6 +110,7 @@
     \legend{Testrun 1, Testrun 2, Testrun 3}
   \end{axis}
 \end{tikzpicture}
+
 
 \section{variable Anzahl Interlines}
 
@@ -132,5 +133,8 @@
     \legend{Testrun 1, Testrun 2, Testrun 3}
   \end{axis}
 \end{tikzpicture}
+
+Man kann anhand dieser Skizze erkennen, dass der Wachstum der Berechnungszeit ungefähr polynomial steigt. Über die Anfangswerte an Interlines (1- 16) kann man keine gute Aussage treffen, da die verschiedenen Tests ziemlich stark voneinander ausfallen. Erst ab 16 Interlines verdreifacht sich die Ausführung bei Quadrierung der Interlines. Dieser Faktor zwischen  $2^{n}$ und $2^{n+1}$ steigt ungefähr linear an. und hat entsprechend bei $n=9$ den größten Wert. Dieses Ergebnis war ungefähr zu erwarten, da die bei Hinzunahme von Interlines pontenziale Berechnungseinheiten mit sich zieht. 
+ 
 
 \end{document}
