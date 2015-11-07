@@ -184,7 +184,7 @@ static
 void
 calculate (struct calculation_arguments const* arguments, struct calculation_results *results, struct options const* options)
 {
-	int i, j = 0; //, k, l = 0;                         /* local variables for loops  */
+	int i, j, k, l = 0;                         /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
 	double star;                                /* four times center value minus 4 neigh.b values */
 	double residuum;                            /* residuum of current iteration                  */
@@ -224,25 +224,24 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
 
-		#pragma omp parallel for \
+		#pragma omp parallel \
 			private(i, j, star, residuum) \
 			num_threads(options->number) \
 			reduction(max:maxresiduum) \
-			shared(Matrix_Out, Matrix_In) \
-			schedule(dynamic, 4)
-		/*#ifndef element
+			shared(Matrix_Out, Matrix_In)
+		#ifndef element
 			#pragma omp for \
 				private(l) \
-				schedule(dynamic, 4) //dynamic, 4
-		#endif*/
+				schedule(dynamic, 4)
+		#endif
 		/* over all rows */
-		for (i = 1; i < N; i++)
+		for (k = 1; k < N; k++)
 		{
-			/*#ifdef columns
+			#ifdef columns
 				j = k;
 			#else
 				i = k;
-			#endif*/
+			#endif
 			double fpisin_i = 0.0;
 
 			if (options->inf_func == FUNC_FPISIN)
@@ -250,18 +249,18 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				fpisin_i = fpisin * sin(pih * (double)i);
 			}
 
-			/*#ifdef element
+			#ifdef element
 				#pragma omp for \
-					schedule(dynamic) //dynamic
-			#endif*/
+					schedule(dynamic)
+			#endif
 			/* over all columns */
-			for (j = 1; j < N; j++)
+			for (l = 1; l < N; l++)
 			{
-				/*#if defined columns
+				#if defined columns
 					i = l;
 				#else
 					j = l;
-				#endif*/
+				#endif
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
 				if (options->inf_func == FUNC_FPISIN)
@@ -279,7 +278,6 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 				Matrix_Out[i][j] = star;
 			}
 		}
-		#pragma omp barrier
 
 		results->stat_iteration++;
 		results->stat_precision = maxresiduum;
