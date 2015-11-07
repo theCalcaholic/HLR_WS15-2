@@ -339,5 +339,6 @@ AskParams (struct options* options, int argc, char** argv)
 				exit(1);
 			}
 		}
+
 	}
 }
