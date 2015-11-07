@@ -1,0 +1,134 @@
+\documentclass[fleqn]{article}
+\usepackage[x11names, rgb]{xcolor}
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{lipsum}
+\usepackage{ulem}
+\usepackage{comment}
+\usepackage{enumerate}
+\usepackage{titlesec}
+\usepackage{boolexpr,pdftexcmds,trace}
+\usepackage{pgfplotstable}
+\usepackage{standalone}
+\makeatletter
+
+\usetikzlibrary{snakes,arrows,shapes}
+\newwrite\dotfile
+
+\begingroup
+  \catcode`\[ = 1\relax
+  \catcode`\] = 2\relax
+  \catcode`\{ = 12\relax
+  \catcode`\} = 12 \relax
+  \gdef\OpenBrace[{]
+  \gdef\CloseBrace[}]
+\endgroup
+
+% custom commands
+\newcommand{\leadingzero}[1]{\ifnum #1<10 0#1\else#1\fi}
+\newcommand{\gerdate}[3]{\leadingzero{#1}.\leadingzero{#2}.\leadingzero{#3}}
+\newcommand{\gertoday}{\gerdate{\the\day}{\the\month}{\the\year}}
+\newcommand*{\bfrac}[2]{\genfrac{}{}{0pt}{}{#1}{#2}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\dotarrow}[0]{}
+
+\newenvironment{graphviz}[1]%
+{%
+\switch
+\case{\pdf@strcmp{#1}{graph}}
+    \renewcommand{\dotarrow}[0]{--}
+\case{\pdf@strcmp{#1}{strict graph}}
+    \renewcommand{\dotarrow}[0]{--}
+\case{\pdf@strcmp{#1}{digraph}}
+    \renewcommand{\dotarrow}[0]{->}
+\case{\pdf@strcmp{#1}{strict digraph}}
+    \renewcommand{\dotarrow}[0]{->}
+\endswitch
+
+\immediate\openout\dotfile=tmp.dot%
+\newcommand{\node}[2]{%
+\immediate\write\dotfile{##1 \dotarrow \OpenBrace##2\CloseBrace}%
+}%
+%
+\immediate\write\dotfile{#1 \OpenBrace}
+}%
+{\immediate\write\dotfile{\CloseBrace}%
+\immediate\closeout\dotfile%
+\immediate\write18{dot2tex --figonly tmp.dot > tmp.tex}%
+\input{tmp.tex}%
+}
+
+\setcounter{section}{0}
+\setcounter{subsection}{0}
+\pagestyle{fancy}
+
+\lhead{Tobias Knöppler, Klaus Ziegert}
+\chead{}
+\rhead{\gertoday}
+\lfoot{}
+\cfoot{\thepage}
+\rfoot{}
+%\setlength{\mathindent}{0pt}
+
+% document specific settings
+%\renewcommand{\thesection}{}
+\renewcommand{\thesubsection}{\arabic{section}. \alph{subsection})}
+\renewcommand{\thesubsubsection}{\roman{subsubsection})}
+\titleformat{\subsubsection}[runin]{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+\title{Leistungsanalyse}
+%\author{}
+%\date{\gertoday}
+\begin{document}
+\section{variable Threadzahl}
+\begin{tikzpicture}
+  \begin{axis}[
+    xlabel=Threads,
+    ylabel=Berechnungsdauer,
+    xmin=0,
+    ymin=0,
+    xmax=12,
+    ymax=200,
+    width=\textwidth
+  ]
+    \addplot[color=red, mark=*] 
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run1.dat};
+    \addplot[color=blue, mark=*] 
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run2.dat};
+    \addplot[color=green, mark=*] 
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run3.dat};
+    \legend{Testrun 1, Testrun 2, Testrun 3}
+  \end{axis}
+\end{tikzpicture}
+
+\section{variable Anzahl Interlines}
+
+\begin{tikzpicture}
+  \begin{axis}[
+    xlabel=Interlines,
+    ylabel=Berechnungsdauer,
+    xmin=0,
+    ymin=0,
+    xmax=1024,
+    ymax=800,
+    width=\textwidth
+  ]
+    \addplot[color=red, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run1.dat};
+    \addplot[color=blue, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run2.dat};
+    \addplot[color=green, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run3.dat};
+    \legend{Testrun 1, Testrun 2, Testrun 3}
+  \end{axis}
+\end{tikzpicture}
+
+\end{document}
