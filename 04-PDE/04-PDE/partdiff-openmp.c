@@ -232,7 +232,7 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 		#ifndef element
 			#pragma omp for \
 				private(l) \
-				schedule(dynamic, 4)
+				schedule(runtime) //dynamic, 4
 		#endif
 		/* over all rows */
 		for (k = 1; k < N; k++)
@@ -251,7 +251,7 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
 
 			#ifdef element
 				#pragma omp for \
-					schedule(dynamic)
+					schedule(runtime //dynamic)
 			#endif
 			/* over all columns */
 			for (l = 1; l < N; l++)
