@@ -83,9 +83,9 @@
 
 % document specific settings
 %\renewcommand{\thesection}{}
-\renewcommand{\thesubsection}{\arabic{section}. \alph{subsection})}
-\renewcommand{\thesubsubsection}{\roman{subsubsection})}
-\titleformat{\subsubsection}[runin]{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+%\renewcommand{\thesubsection}{\arabic{subsection})}
+%\renewcommand{\thesubsubsection}{\roman{subsubsection})}
+%\titleformat{\subsubsection}[runin]{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
 
 \title{Leistungsanalyse}
 %\author{}
@@ -95,7 +95,7 @@
 \begin{tikzpicture}
   \begin{axis}[
     xlabel=Threads,
-    ylabel=Berechnungsdauer,
+    ylabel=Berechnungsdauer (s),
     xmin=0,
     ymin=0,
     xmax=12,
@@ -139,7 +139,7 @@ Jedoch ist die Verdopplung der verfügbaren Hardware natürlich ab gewissen Gren
 \begin{tikzpicture}
   \begin{axis}[
     xlabel=Interlines,
-    ylabel=Berechnungsdauer,
+    ylabel=Berechnungsdauer (s),
     xmin=0,
     ymin=0,
     xmax=1024,
@@ -155,5 +155,19 @@ Jedoch ist die Verdopplung der verfügbaren Hardware natürlich ab gewissen Gren
     \legend{Testrun 1, Testrun 2, Testrun 3}
   \end{axis}
 \end{tikzpicture}
+
+\subsection{Interpretation:}
+Man kann anhand dieser Skizze erkennen, dass der Wachstum der
+Berechnungszeit ungefähr polynomial steigt. Über die Anfangswerte an
+Interlines (1- 16) kann man keine gute Aussage treffen, da die
+verschiedenen Tests ziemlich stark voneinander ausfallen. Erst ab 16
+Interlines verdreifacht sich die Ausführung bei Quadrierung der
+Interlines. Dieser Faktor zwischen  $2^{n}$ und $2^{n+1}$ steigt
+ungefähr linear an. und hat entsprechend bei $n=9$ den größten Wert.
+Dieses Ergebnis war ungefähr zu erwarten, da die bei Hinzunahme von
+Interlines pontenziale Berechnungseinheiten mit sich zieht. 
+ 
+
+
 
 \end{document}
