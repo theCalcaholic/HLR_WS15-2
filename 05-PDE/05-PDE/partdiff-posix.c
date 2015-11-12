@@ -242,12 +242,15 @@ void
 		maxresiduum = 0;
 
     int loopPart = N / (int) options->number;
-    int loopStart = loopPart * my_data->threadId;
-    int loopEnd = loopPart * (my_data->threadId + 1);
+    // TODO: loopStart may not equal 0!!!!!!!
+    int loopStart = (loopPart * my_data->threadId);
+    int loopEnd = (loopPart * (my_data->threadId + 1));
     if( my_data->threadId == (int) options->number + 1) {
       loopEnd = N;
     }
+    
 		/* over all rows */
+    // printf("\nThread: %i\n  N:%i\n", my_data->threadId, N);
 		for (i = loopStart; i < loopEnd; i++)
 		{
 			double fpisin_i = 0.0;
@@ -260,6 +263,8 @@ void
 			/* over all columns */
 			for (j = 1; j < N; j++)
 			{
+        // printf("\n_j: %i\n", j);
+        // printf("\nThread: %i\n  i:%i\n  j:%i\n", my_data->threadId, i, j);
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
 				if (options->inf_func == FUNC_FPISIN)
