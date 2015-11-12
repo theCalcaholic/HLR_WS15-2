@@ -234,20 +234,21 @@ void
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 
+    int loopPart = N / (int) options->number;
+    int loopStart = (loopPart * my_data->threadId) + 1;
+    int loopEnd = (loopPart * (my_data->threadId + 1));
+    if( my_data->threadId == (int) options->number - 1) {
+      loopEnd = N;
+    }
+    //TODO: Nach Fertigstellung löschen!
+    printf("ich bin thread %d mit LoopStart= %d und LoopEnd= %d \n",my_data->threadId,loopStart,loopEnd);
+
 	while (term_iteration > 0)
 	{
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
 
 		maxresiduum = 0;
-
-    int loopPart = N / (int) options->number;
-    // TODO: loopStart may not equal 0!!!!!!!
-    int loopStart = (loopPart * my_data->threadId);
-    int loopEnd = (loopPart * (my_data->threadId + 1));
-    if( my_data->threadId == (int) options->number + 1) {
-      loopEnd = N;
-    }
     
 		/* over all rows */
     // printf("\nThread: %i\n  N:%i\n", my_data->threadId, N);
@@ -427,14 +428,15 @@ main (int argc, char** argv)
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
   int t;
+  struct thread_variable t_var[(int)options.number];
   for(t = 0; t < (int)options.number; t++) {
-    struct thread_variable t_var = {
-      .options = &options,
-      .arguments = &arguments,
-      .results = &results,
-      .threadId = t
-    };
-    pthread_create(&threads[t], &attr, calculate,(void *) &t_var);
+    t_var[t].options = &options,
+    t_var[t].arguments = &arguments,
+    t_var[t].results = &results,
+    t_var[t].threadId = t;
+    //Todo: Nach Fertigstellung löschen!
+    printf("Es wird Thread %d aufgerufen \n",t);
+    pthread_create(&threads[t], &attr, calculate,(void *) &t_var[t]);
   }
 
   for(t=0; t < (int) options.number; t++)
