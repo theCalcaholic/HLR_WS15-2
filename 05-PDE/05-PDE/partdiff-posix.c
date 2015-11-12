@@ -47,9 +47,10 @@ struct calculation_results
 
 struct thread_variable
 {
-    struct options options;
-    struct calculation_results results;
-    struct calculation_arguments arguments;
+    struct options *options;
+    struct calculation_results *results;
+    struct calculation_arguments *arguments;
+    int threadId;
 };
 
 /* ************************************************************************ */
@@ -197,15 +198,15 @@ void
 	double residuum;                            /* residuum of current iteration                  */
 	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 
-struct thread_variable *my_data;
-struct options *options;
-struct calculation_arguments *arguments;
-struct calculation_results *results;
+  struct thread_variable *my_data;
+  struct options *options;
+  struct calculation_arguments *arguments;
+  struct calculation_results *results;
 
-my_data = (struct thread_variable *) threadarg;
-options = &(my_data->options);
-arguments = &(my_data->arguments);
-results = &(my_data->results);
+  my_data = (struct thread_variable *) threadarg;
+  options = my_data->options;
+  arguments = my_data->arguments;
+  results = my_data->results;
 
 	int const N = arguments->N;
 	double const h = arguments->h;
@@ -240,8 +241,14 @@ results = &(my_data->results);
 
 		maxresiduum = 0;
 
+    int loopPart = N / (int) options->number;
+    int loopStart = loopPart * my_data->threadId;
+    int loopEnd = loopPart * (my_data->threadId + 1);
+    if( my_data->threadId == (int) options->number + 1) {
+      loopEnd = N;
+    }
 		/* over all rows */
-		for (i = 1; i < N; i++)
+		for (i = loopStart; i < loopEnd; i++)
 		{
 			double fpisin_i = 0.0;
 
@@ -393,39 +400,49 @@ int
 main (int argc, char** argv)
 {
 
-    struct thread_variable thread_var;
-    struct options *options = &(thread_var.options);
-    struct calculation_arguments *arguments = &(thread_var.arguments);
-    struct calculation_results *results =  &(thread_var.results);
+    struct options options;
+    struct calculation_arguments arguments;
+    struct calculation_results results;
 
 	/* get parameters */
-	AskParams(options, argc, argv);              /* ************************* */
+	AskParams(&options, argc, argv);              /* ************************* */
 
-	initVariables(arguments, results, options);           /* ******************************************* */
 
-	allocateMatrices(arguments);        /*  get and initialize variables and matrices  */
-	initMatrices(arguments, options);            /* ******************************************* */
+	initVariables(&arguments, &results, &options);           /* ******************************************* */
+
+	allocateMatrices(&arguments);        /*  get and initialize variables and matrices  */
+	initMatrices(&arguments, &options);            /* ******************************************* */
     
 	gettimeofday(&start_time, NULL);                   /*  start timer         */
 
-    pthread_t threads[options->number];
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+  // initialize thread parameters
+  pthread_t threads[options.number];
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-    pthread_create(&threads[0], &attr, calculate,(void *) &thread_var);
+  int t;
+  for(t = 0; t < (int)options.number; t++) {
+    struct thread_variable t_var = {
+      .options = &options,
+      .arguments = &arguments,
+      .results = &results,
+      .threadId = t
+    };
+    pthread_create(&threads[0], &attr, calculate,(void *) &t_var);
+  }
 
-    for(int i=0; i < (int) options->number; i++)
-    {
-    pthread_join(threads[i], NULL);
-    }
+  for(t=0; t < (int) options.number; t++)
+  {
+    pthread_join(threads[t], NULL);
+  }
 
 	gettimeofday(&comp_time, NULL);                   /*  stop timer          */
 
-	displayStatistics(arguments, results, options);
-	DisplayMatrix(arguments, results, options);
+	displayStatistics(&arguments, &results, &options);
+	DisplayMatrix(&arguments, &results, &options);
 
-	freeMatrices(arguments);                                       /*  free memory     */
+	freeMatrices(&arguments);                                       /*  free memory     */
 
 	return 0;
 }
