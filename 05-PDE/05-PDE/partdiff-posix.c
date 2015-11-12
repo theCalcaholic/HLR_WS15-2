@@ -429,7 +429,7 @@ main (int argc, char** argv)
       .results = &results,
       .threadId = t
     };
-    pthread_create(&threads[0], &attr, calculate,(void *) &t_var);
+    pthread_create(&threads[t], &attr, calculate,(void *) &t_var);
   }
 
   for(t=0; t < (int) options.number; t++)
