@@ -22,6 +22,8 @@ partdiff-seq: partdiff-seq.o $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $< $(OBJS) $(LIBS)
 
 
+
+
 clean:
 	$(RM) *.o *~ partdiff-posix partdiff-seq
 

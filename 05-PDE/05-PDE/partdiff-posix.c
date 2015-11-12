@@ -26,10 +26,7 @@
 #include <math.h>
 #include <malloc.h>
 #include <sys/time.h>
-
-// Für POSIX-Threads
 #include <pthread.h>
-
 #include "partdiff-seq.h"
 
 struct calculation_arguments
@@ -48,13 +45,12 @@ struct calculation_results
 	double    stat_precision; /* actual precision of all slaves in iteration    */
 };
 
-//POSIX
-struct thread_data{
-   struct options *options;
-   struct calculation_arguments *arguments;
-   struct calculation_results *results;
+struct thread_variable
+{
+    struct options options;
+    struct calculation_results results;
+    struct calculation_arguments arguments;
 };
-//POSIX
 
 /* ************************************************************************ */
 /* Global variables                                                         */
@@ -191,20 +187,9 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 /* ************************************************************************ */
 /* calculate: solves the equation                                           */
 /* ************************************************************************ */
-//POSIX
-/*
-Hier muss calculate  modifiziert
-werden, da create_thread eine Funktion mit nur einen
-Argument vom Typ void (wo man eine Strukur
-weiterreichen kann)erwartet. 
-*/
 static
 void
-
-//calculate (struct calculation_arguments const* arguments, struct calculation_results *results, struct options const* options)
-
 *calculate (void *threadarg)
-//POSIX
 {
 	int i, j;                                   /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
@@ -212,13 +197,15 @@ void
 	double residuum;                            /* residuum of current iteration                  */
 	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 
-//POSIX
-struct thread_data *my_data;
-my_data = (struct thread_data *) threadarg;
-struct calculation_arguments *arguments = my_data->arguments;
-struct calculation_results *results = my_data->results;
-struct options *options = my_data->options;
-//POSIX
+struct thread_variable *my_data;
+struct options *options;
+struct calculation_arguments *arguments;
+struct calculation_results *results;
+
+my_data = (struct thread_variable *) threadarg;
+options = &(my_data->options);
+arguments = &(my_data->arguments);
+results = &(my_data->results);
 
 	int const N = arguments->N;
 	double const h = arguments->h;
@@ -405,43 +392,40 @@ DisplayMatrix (struct calculation_arguments* arguments, struct calculation_resul
 int
 main (int argc, char** argv)
 {
-	struct options options;
-	struct calculation_arguments arguments;
-	struct calculation_results results;
+
+    struct thread_variable thread_var;
+    struct options *options = &(thread_var.options);
+    struct calculation_arguments *arguments = &(thread_var.arguments);
+    struct calculation_results *results =  &(thread_var.results);
 
 	/* get parameters */
-	AskParams(&options, argc, argv);              /* ************************* */
+	AskParams(options, argc, argv);              /* ************************* */
 
-	initVariables(&arguments, &results, &options);           /* ******************************************* */
+	initVariables(arguments, results, options);           /* ******************************************* */
 
-	allocateMatrices(&arguments);        /*  get and initialize variables and matrices  */
-	initMatrices(&arguments, &options);            /* ******************************************* */
-
+	allocateMatrices(arguments);        /*  get and initialize variables and matrices  */
+	initMatrices(arguments, options);            /* ******************************************* */
+    
 	gettimeofday(&start_time, NULL);                   /*  start timer         */
 
-////POSIX
-static int NUM_THREADS = 12;
+    pthread_t threads[options->number];
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-struct thread_data thread_data_array[NUM_THREADS];
+    pthread_create(&threads[0], &attr, calculate,(void *) &thread_var);
 
-int t;
-for(t=0;t<NUM_THREADS;t++){
-thread_data_array[t].options = &options;
-thread_data_array[t].arguments = &arguments;
-thread_data_array[t].results = &results;
-}
+    for(int i=0; i < (int) options->number; i++)
+    {
+    pthread_join(threads[i], NULL);
+    }
 
-pthread_t threads[NUM_THREADS];
-//	calculate(&arguments, &results, &options);                                      /*  solve the equation  */
-pthread_create(&threads[1], NULL, calculate, (void *) &thread_data_array[1]);
-
-////POSIX
 	gettimeofday(&comp_time, NULL);                   /*  stop timer          */
 
-	displayStatistics(&arguments, &results, &options);
-	DisplayMatrix(&arguments, &results, &options);
+	displayStatistics(arguments, results, options);
+	DisplayMatrix(arguments, results, options);
 
-	freeMatrices(&arguments);                                       /*  free memory     */
+	freeMatrices(arguments);                                       /*  free memory     */
 
-	pthread_exit(NULL);
+	return 0;
 }
