@@ -51,12 +51,12 @@ struct thread_variable
     struct calculation_results *results;
     struct calculation_arguments *arguments;
     int threadId;
+    pthread_barrier_t *synchronization;
 };
 
 /* ************************************************************************ */
 /* Global variables                                                         */
 /* ************************************************************************ */
-pthread_barrier_t   barrier;
 
 /* time measurement variables */
 struct timeval start_time;       /* time when program started                      */
@@ -303,7 +303,7 @@ void
 		{
 			term_iteration--;
 		}
-        pthread_barrier_wait (&barrier);
+        pthread_barrier_wait (my_data->synchronization);
 	}
 
 	results->m = m2;
@@ -426,6 +426,7 @@ main (int argc, char** argv)
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+  pthread_barrier_t   barrier;
   pthread_barrier_init (&barrier, NULL, options.number);
 
   int t;
@@ -435,6 +436,7 @@ main (int argc, char** argv)
     t_var[t].arguments = &arguments,
     t_var[t].results = &results,
     t_var[t].threadId = t;
+    t_var[t].synchronization = &barrier;
     pthread_create(&threads[t], &attr, calculate,(void *) &t_var[t]);
   }
 
