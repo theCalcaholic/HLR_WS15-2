@@ -237,7 +237,7 @@ void
 
     int loopPart = N / (int) options->number;
     int loopStart = (loopPart * my_data->threadId) + 1;
-    int loopEnd = (loopPart * (my_data->threadId + 1));
+    int loopEnd = (loopPart * (my_data->threadId + 1)) + 1;
     if( my_data->threadId == (int) options->number - 1) {
       loopEnd = N;
     }
