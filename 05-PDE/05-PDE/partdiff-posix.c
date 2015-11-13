@@ -241,8 +241,6 @@ void
     if( my_data->threadId == (int) options->number - 1) {
       loopEnd = N;
     }
-    //TODO: Nach Fertigstellung löschen!
-    printf("ich bin thread %d mit LoopStart= %d und LoopEnd= %d \n",my_data->threadId,loopStart,loopEnd);
 
 	while (term_iteration > 0)
 	{
@@ -437,8 +435,6 @@ main (int argc, char** argv)
     t_var[t].arguments = &arguments,
     t_var[t].results = &results,
     t_var[t].threadId = t;
-    //Todo: Nach Fertigstellung löschen!
-    printf("Es wird Thread %d aufgerufen \n",t);
     pthread_create(&threads[t], &attr, calculate,(void *) &t_var[t]);
   }
 
