@@ -51,6 +51,8 @@ struct thread_variable
     struct calculation_results *results;
     struct calculation_arguments *arguments;
     int threadId;
+    int loopStart;
+    int loopEnd;
     pthread_barrier_t *synchronization;
 };
 
@@ -199,15 +201,15 @@ void
 	double residuum;                            /* residuum of current iteration                  */
 	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 
-  struct thread_variable *my_data;
+  struct thread_variable *thread_var;
   struct options *options;
   struct calculation_arguments *arguments;
   struct calculation_results *results;
 
-  my_data = (struct thread_variable *) threadarg;
-  options = my_data->options;
-  arguments = my_data->arguments;
-  results = my_data->results;
+  thread_var = (struct thread_variable *) threadarg;
+  options = thread_var->options;
+  arguments = thread_var->arguments;
+  results = thread_var->results;
 
 	int const N = arguments->N;
 	double const h = arguments->h;
@@ -235,13 +237,6 @@ void
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 
-    int loopPart = N / (int) options->number;
-    int loopStart = (loopPart * my_data->threadId) + 1;
-    int loopEnd = (loopPart * (my_data->threadId + 1)) + 1;
-    if( my_data->threadId == (int) options->number - 1) {
-      loopEnd = N;
-    }
-
 	while (term_iteration > 0)
 	{
 		double** Matrix_Out = arguments->Matrix[m1];
@@ -250,8 +245,8 @@ void
 		maxresiduum = 0;
     
 		/* over all rows */
-    // printf("\nThread: %i\n  N:%i\n", my_data->threadId, N);
-		for (i = loopStart; i < loopEnd; i++)
+    // printf("\nThread: %i\n  N:%i\n", thread_var->threadId, N);
+		for (i = thread_var->loopStart; i < thread_var->loopEnd; i++)
 		{
 			double fpisin_i = 0.0;
 
@@ -264,7 +259,7 @@ void
 			for (j = 1; j < N; j++)
 			{
         // printf("\n_j: %i\n", j);
-        // printf("\nThread: %i\n  i:%i\n  j:%i\n", my_data->threadId, i, j);
+        // printf("\nThread: %i\n  i:%i\n  j:%i\n", thread_var->threadId, i, j);
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
 				if (options->inf_func == FUNC_FPISIN)
@@ -303,7 +298,7 @@ void
 		{
 			term_iteration--;
 		}
-        pthread_barrier_wait (my_data->synchronization);
+        pthread_barrier_wait (thread_var->synchronization);
 	}
 
 	results->m = m2;
@@ -428,6 +423,7 @@ main (int argc, char** argv)
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
   pthread_barrier_t   barrier;
   pthread_barrier_init (&barrier, NULL, options.number);
+  int loopPart_for_one_thread = arguments.N / (int) options.number;
 
   int t;
   struct thread_variable t_var[(int)options.number];
@@ -437,8 +433,15 @@ main (int argc, char** argv)
     t_var[t].results = &results,
     t_var[t].threadId = t;
     t_var[t].synchronization = &barrier;
+    t_var[t].loopStart = (loopPart_for_one_thread * t) + 1;
+    t_var[t].loopEnd = (loopPart_for_one_thread * (t + 1)) + 1;
+    if(t == (int) options.number - 1)
+    {
+    t_var[t].loopEnd = arguments.N;
+    }
     pthread_create(&threads[t], &attr, calculate,(void *) &t_var[t]);
-  }
+    }
+
 
   for(t=0; t < (int) options.number; t++)
   {
