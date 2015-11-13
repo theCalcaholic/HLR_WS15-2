@@ -45,6 +45,9 @@ struct calculation_results
 	double    stat_precision; /* actual precision of all slaves in iteration    */
 };
 
+/*
+Alle Variablen, die ein Thread für das Abarbeiten in calculate benötigt.
+*/
 struct thread_variable
 {
     struct options *options;
@@ -200,7 +203,9 @@ void
 	double star;                                /* four times center value minus 4 neigh.b values */
 	double residuum;                            /* residuum of current iteration                  */
 	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
-
+/*
+Hier werden alle vorherigen struct-Variablen redefiniert.
+*/
   struct thread_variable *thread_var;
   struct options *options;
   struct calculation_arguments *arguments;
@@ -244,8 +249,11 @@ void
 
 		maxresiduum = 0;
     
+        /* Jeder Thread arbeitet hier einen loopPart durch. Die
+          loopParts der Threads sind (jeweils) disjunkt und wurden mithilfe
+          des Intervalls (loopStart,loopEnd) definiert*/
+
 		/* over all rows */
-    // printf("\nThread: %i\n  N:%i\n", thread_var->threadId, N);
 		for (i = thread_var->loopStart; i < thread_var->loopEnd; i++)
 		{
 			double fpisin_i = 0.0;
@@ -258,8 +266,6 @@ void
 			/* over all columns */
 			for (j = 1; j < N; j++)
 			{
-        // printf("\n_j: %i\n", j);
-        // printf("\nThread: %i\n  i:%i\n  j:%i\n", thread_var->threadId, i, j);
 				star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
 
 				if (options->inf_func == FUNC_FPISIN)
@@ -416,7 +422,7 @@ main (int argc, char** argv)
     
 	gettimeofday(&start_time, NULL);                   /*  start timer         */
 
-  // initialize thread parameters
+  // Es werden alle Threads deklariert und deren Eigenschaften festgelegt.
   pthread_t threads[options.number];
   pthread_attr_t attr;
   pthread_attr_init(&attr);
@@ -425,6 +431,10 @@ main (int argc, char** argv)
   pthread_barrier_init (&barrier, NULL, options.number);
   int loopPart_for_one_thread = arguments.N / (int) options.number;
 
+  /*Da pthread_create nur einen Argument für calculate weiterreicht,
+  mussten man diese Variablen in einen struct verpacken. Außerdem
+  erhält jeder Thread einen LoopPart, dessen Größen gleich
+  gleichverteilt ist (Außer beim letzten Thread).*/
   int t;
   struct thread_variable t_var[(int)options.number];
   for(t = 0; t < (int)options.number; t++) {
