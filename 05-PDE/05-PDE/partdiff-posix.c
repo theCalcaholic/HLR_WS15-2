@@ -56,6 +56,7 @@ struct thread_variable
 /* ************************************************************************ */
 /* Global variables                                                         */
 /* ************************************************************************ */
+pthread_barrier_t   barrier;
 
 /* time measurement variables */
 struct timeval start_time;       /* time when program started                      */
@@ -304,6 +305,7 @@ void
 		{
 			term_iteration--;
 		}
+        pthread_barrier_wait (&barrier);
 	}
 
 	results->m = m2;
@@ -426,6 +428,7 @@ main (int argc, char** argv)
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+  pthread_barrier_init (&barrier, NULL, options.number);
 
   int t;
   struct thread_variable t_var[(int)options.number];
