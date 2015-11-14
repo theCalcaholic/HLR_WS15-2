@@ -31,6 +31,6 @@ clean:
 
 partdiff-seq.o: partdiff-seq.c Makefile
 
-partdiff-postfix.o: partdiff-posix.c Makefile
+partdiff-posix.o: partdiff-posix.c Makefile
 
 askparams.o: askparams.c Makefile

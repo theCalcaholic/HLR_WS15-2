@@ -27,7 +27,7 @@
 #include <malloc.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "partdiff-seq.h"
+#include "partdiff-posix.h"
 
 struct calculation_arguments
 {
