@@ -1,0 +1,38 @@
+**********Leistungsanalyse********** 
+
+
+
+Es werden die Ausführungszeiten von partdiff-seq und partdiff-posix überprüft
+
+Hier wurde 3 mal partdiff-seq ausgeführt: 
+
+    52.018536      51.960722      51.954834  
+
+Hier wurde 3 mal partdiff-posix ausgeführt. Die erste Zeile ist mit einen Thread.
+Jede weitere um einen Thread inkrementiert. Es gibt 12 Zeilen (bis 12 Thread)
+
+
+    52.028838      52.140695      52.938863  
+
+    26.087554      26.821407      26.110185  
+
+    17.549110      17.515558      17.551143  
+
+    13.151488      13.143059      13.140707  
+
+    10.686832      10.544150      10.509162  
+
+    8.777090      8.838507      8.783395  
+
+    7.667535      7.544237      7.536613  
+
+    6.610692      9.539265      9.666401  
+
+    5.894046      6.146108      6.024277  
+
+    7.688474      7.727260      7.723680  
+
+    7.008712      6.315243      7.054828  
+
+    5.211963      6.311325      4.857754  
+
