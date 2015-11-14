@@ -205,6 +205,8 @@ void
 	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 /*
 Hier werden alle vorherigen struct-Variablen redefiniert.
+Darüber hinaus werden durch thread_var die Arbeitssegmente und
+die Threadid's mitgeliefert.
 */
   struct thread_variable *thread_var;
   struct options *options;
@@ -251,7 +253,7 @@ Hier werden alle vorherigen struct-Variablen redefiniert.
     
         /* Jeder Thread arbeitet hier einen loopPart durch. Die
           loopParts der Threads sind (jeweils) disjunkt und wurden mithilfe
-          des Intervalls (loopStart,loopEnd) definiert*/
+          des Intervalls [loopStart,loopEnd) definiert*/
 
 		/* over all rows */
 		for (i = thread_var->loopStart; i < thread_var->loopEnd; i++)
@@ -304,6 +306,12 @@ Hier werden alle vorherigen struct-Variablen redefiniert.
 		{
 			term_iteration--;
 		}
+        /*
+        Hier warten alle Threads solange, bis der letzte Thread ankommt.
+        Dies ist eine Notwendigkeit, da die nächste Matrixberechnung
+        von der aktuellen Matrixergebnis abhängt und somit kein ein
+        "Dirty Read" entsteht.
+        */
         pthread_barrier_wait (thread_var->synchronization);
 	}
 
@@ -432,7 +440,7 @@ main (int argc, char** argv)
   int loopPart_for_one_thread = arguments.N / (int) options.number;
 
   /*Da pthread_create nur einen Argument für calculate weiterreicht,
-  mussten man diese Variablen in einen struct verpacken. Außerdem
+  musste man diese Variablen in einen struct verpacken. Außerdem
   erhält jeder Thread einen LoopPart, dessen Größen gleich
   gleichverteilt ist (Außer beim letzten Thread).*/
   int t;
@@ -445,6 +453,8 @@ main (int argc, char** argv)
     t_var[t].synchronization = &barrier;
     t_var[t].loopStart = (loopPart_for_one_thread * t) + 1;
     t_var[t].loopEnd = (loopPart_for_one_thread * (t + 1)) + 1;
+    //Der letzte Thread muss bei nicht teilbarkeit von N/options.number
+    //den Rest abarbeiten.
     if(t == (int) options.number - 1)
     {
     t_var[t].loopEnd = arguments.N;
