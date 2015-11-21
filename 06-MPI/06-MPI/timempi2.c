@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/unistd.h>
+#include <math.h>
 
 //MasterID
 const int MID = 0;
@@ -15,12 +16,16 @@ int main(int argc, char **argv)
   int p_id;
   int number_of_p;
 
+  //Die lokalen Eintreffzeiten und die
+  //kürzeste Eintreffzeit eines Prozess 
+  long usec_local_min = 0;
+  long usec_global_min = 0;
+
   //Initialisierung der MPI und der Variabeln.
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &p_id);
   MPI_Comm_size(MPI_COMM_WORLD, &number_of_p);
 	
-	long usec;
 			
   //Jeder Nebenprozess ermittelt seinen Zeitstempel 
   //und sendet es an den Masterprozess.
@@ -53,16 +58,17 @@ int main(int argc, char **argv)
 		//Sendet 
 		MPI_Send(message, MESSAGE_LENGTH,MPI_CHAR, MID, 0, MPI_COMM_WORLD);	
 
-		usec = tv.tv_usec;
+		//Merkt sich die benötigte Eintreffzeit	
+		usec_local_min = tv.tv_usec;
 	}	  
   //Der Masterprozess empfängt alle Message der Reihe nach
   //und printet alle Ergebnisse zurück.
   else
   {
-		usec = 0;
+		//Der MID soll nicht mitgerechnet werden!
+		usec_local_min = INFINITY; 
 		int i;
 		char *buf = malloc(sizeof(char) * MESSAGE_LENGTH);
-		long usec_sum;
 		for (i= 1; i < number_of_p; ++i)
 		{
 			
@@ -70,12 +76,22 @@ int main(int argc, char **argv)
 			
 			printf("%s\n",(char*)buf);
 		}
-		MPI_Reduce(&usec, &usec_sum, 1, MPI_LONG, MPI_MIN, MID, MPI_COMM_WORLD);
-		printf("%ld\n", usec_sum);
 		free(buf);	
   }
-  //Hier warten nun alle Prozesse
+
+  //Hier warten nun alle Prozesse außer der Masterprozess
   MPI_Barrier(MPI_COMM_WORLD);
+
+  //Masterprozess ermittelt die kürzeste Eintreffzeit
+  MPI_Reduce(&usec_local_min, &usec_global_min, 1, MPI_LONG, MPI_MIN, MID,MPI_COMM_WORLD);
+  if(p_id == MID)
+  {
+	printf("%06ld\n", usec_global_min);
+  }
+
+  //Erst wenn der Masterprozess fertig ist, dürfen alle andere Prozesse weitermachen.
+  MPI_Barrier(MPI_COMM_WORLD);
+
   printf("Rang %d beendet jetzt\n", p_id);
 
   //Beendet die MPI-Umgebung
