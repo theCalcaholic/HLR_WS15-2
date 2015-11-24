@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <string.h>
 #include <sys/unistd.h>
+#include <stdlib.h>
+
 
 //MasterID
 const int MID = 0;
@@ -56,18 +59,23 @@ int main(int argc, char **argv)
   //und printet alle Ergebnisse zurück.
   else
   {
+	char *new_message = malloc(sizeof(char) * MESSAGE_LENGTH);
+	char *message_to_shell = malloc(sizeof(char) * MESSAGE_LENGTH * number_of_p + 17 + 2 * number_of_p);
+	char echo[10] = "printf\ '";
+	strcpy(message_to_shell,echo);
 	int i;
-	char *buf = malloc(sizeof(char) * MESSAGE_LENGTH);
 	for (i= 1; i < number_of_p; ++i)
 	{
-		
-		MPI_Recv(buf, MESSAGE_LENGTH,
+		MPI_Recv(new_message, MESSAGE_LENGTH,
 		MPI_CHAR, i,0,
 		MPI_COMM_WORLD,NULL);
-		
-		printf("%s\n",(char*)buf);
+		strcat(message_to_shell,new_message);
+		strcat(message_to_shell,"\n");
      	}
-	free(buf);	
+	strcat(message_to_shell,"' ; wait");
+	system(message_to_shell);
+	free(new_message);
+	free(message_to_shell);	
   }
   //Hier warten nun alle Prozesse
   MPI_Barrier(MPI_COMM_WORLD);
