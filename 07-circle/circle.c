@@ -41,7 +41,7 @@ init (int number,int store, int rank)
   srand(time(NULL)+ rank);				//Prozesse erhalten ohne rank das Selbe.
   
   int i;
-  for (i = 0; i < number; i++)
+  for (i = 0; i < number;i++)
   {
     buf[i] = rand() % 25; //do not modify %25
   }
@@ -53,7 +53,7 @@ void*
 circle (int* buf,int rank,int predecessor, int successor, int size, int store)
 {
 	
-  int* newbuf = malloc(sizeof(int) * (store + 1)); 					//Eine Copy des buf 
+  int* newbuf = malloc(sizeof(int*) * (store + 1)); 					//Eine Copy des buf 
   int special_integer;									//Die Integerzahl, worauf der letzte Prozess wartet.
   
   //Übergabe des special_integer an den letzten Prozess 
@@ -79,6 +79,7 @@ circle (int* buf,int rank,int predecessor, int successor, int size, int store)
 	MPI_Send(buf,store + 1,MPI_INT,successor,10,MPI_COMM_WORLD);
 	MPI_Recv(newbuf,store + 1,MPI_INT,predecessor,10,MPI_COMM_WORLD,NULL);
   } 
+  MPI_Barrier(MPI_COMM_WORLD);
 
   return newbuf;
 }
