@@ -50,7 +50,7 @@ init (int number,int maxnumber, int rank)
   return buf;
 }
 
-void
+void*
 circle (int* buf,int rank,int predecessor, int successor, int size, int maxnumber)
 {
 	
@@ -87,6 +87,8 @@ circle (int* buf,int rank,int predecessor, int successor, int size, int maxnumbe
 	  buf = newbuf;										//der buf wird nun erneut
 	  newbuf = malloc(sizeof(int) * (maxnumber + 1));					//Empfangbuf wird anderen neuen Platz geschaffen
   }
+
+	return buf;
 }
 
 int
@@ -128,7 +130,7 @@ main (int argc, char** argv)
 
   print_rand_array("Before",rank,number_of_rand_max,size,buf);
   if(size > 1) {
-		circle(buf,rank,predecessor,successor,size, number_of_rand_max);
+		buf = circle(buf,rank,predecessor,successor,size, number_of_rand_max);
 	}
   print_rand_array("After",rank,number_of_rand_max,size,buf);
   MPI_Finalize();
