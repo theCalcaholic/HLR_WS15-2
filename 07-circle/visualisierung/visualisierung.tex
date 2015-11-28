@@ -124,16 +124,23 @@ Die folgende Farbkodierung gilt für alle Screenshots:\\
 
 \subsection{}%subsection name}\label{label}
 \includegraphics[width=\textwidth]{vampir1}
+Links oben, in dem grünen Kasten ist dargestellt, zu welcher Zeit sich jeder Prozess innerhalb von MPI-Funktionen, VT\_API-Funktionen oder programmeigenen Funktionen aufhielt. Deutlich erkennbar ist dabei, dass der Parallelisierungsoverhead (v.a. Initialisierung) in diesem Fall wesentlich mehr Zeit in Anspruch nahm, als der eigentliche Programmcode (Das berechnen, Vergleichen und Ausgeben der Zufallsvariablen).\\
+Rechts oben ist dasselbe noch einmal für das Programm insgesamt aufgeführt.\\
+Links unten ist in einer Matrix dargestellt, wie oft jedes Paar von Prozessen miteinander kommuniziert hat. Erkennbar ist, dass jeder Prozess mit dem letzten kommuniziert hat, da dieser den anderen einmal pro Iteration die Abbruchvariable mitgeteilt hat. Ansonsten hat jeder Prozess nur je einmal mit seinem Vorgänger und Nachfolger kommuniziert.\\
+Rechts unten ist die Zeit aufgeführt, die das Programm in jeder Funktion verbracht hat. Ich habe farbig markiert, welche Funktion zu welcher Programmphase gehört.
 
 \subsection{}%subsection name}\label{label}
 \includegraphics[width=\textwidth]{vampir2}
+Hier ist zu sehen, wann die einzelnen Prozesse initialisiert wurden. Dies findet offensichtlich in der Initialisierungsphase statt.
 
 \subsection{}%subsection name}\label{label}
 \includegraphics[width=\textwidth]{vampir3}
-
+Hier ist dargestellt, zu welcher Zeit die Prozesse arbeiteten (grün), von MPI blockiert waren (rot) oder schon terminiert hatten (blau). Im Bereich innerhalb des blauen Kastens befindet sich das Programm in der while-Schleife während welcher die Zufallsvariablen ausgetauscht werden.\\
+Im Bereich innerhalb des gelben Kastens (evtl. schwer zu sehen) befindet sich das Programm in der Ausgabephase (alle Prozesse außer dem Masterprozess haben bereits terminiert).
 \subsection{}%subsection name}\label{label}
-
 \includegraphics[width=\textwidth]{vampir4}
+Hier ist eine Iteration der while-Schleife zu sehen. Die durch die schwarze Linie verbundenen Punkte markieren die Zeitpunkte an denen jeder Prozess die Barrier erreicht hat.
+
 
 
 
