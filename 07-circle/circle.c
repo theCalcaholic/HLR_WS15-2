@@ -25,7 +25,12 @@ print_rand_array(char* text, int rank,int maxnumber,int size,int* buf)
 			}
   	}
   }
-  else MPI_Send(buf, maxnumber+1, MPI_INT, 0, 100, MPI_COMM_WORLD);	
+  else {
+		MPI_Send(buf, maxnumber+1, MPI_INT, 0, 100, MPI_COMM_WORLD);	
+	}
+	if(rank==0) {
+		printf("\n");
+	}
 }
 
 int*
