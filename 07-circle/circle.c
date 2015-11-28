@@ -78,16 +78,17 @@ circle (int* buf,int rank,int predecessor, int successor, int size, int maxnumbe
 			MPI_Send(buf,maxnumber + 1,MPI_INT,successor,3,MPI_COMM_WORLD);			//P 0 gibt den Anstoß
 			MPI_Recv(newbuf,maxnumber + 1,MPI_INT,predecessor,3,MPI_COMM_WORLD,NULL);	//und wartet auf den letzten P
 	  } 
-	  MPI_Barrier(MPI_COMM_WORLD);								//Alle P warten auf P 0 bzw. letzten P
+		
 	  if(rank == size-1) {
 			cycle_end = special_integer == newbuf[0];				//letzter P überprüft ob Bedingung erfüllt ist
 		}
+	  MPI_Barrier(MPI_COMM_WORLD);								//Alle P warten auf P 0 bzw. letzten P
 	  MPI_Bcast(&cycle_end,1,MPI_INT,size-1, MPI_COMM_WORLD); 				//teilt das Ergebnis allen mit
 	  buf = newbuf;										//der buf wird nun erneut
 	  newbuf = malloc(sizeof(int) * (maxnumber + 1));					//Empfangbuf wird anderen neuen Platz geschaffen
-	  MPI_Barrier(MPI_COMM_WORLD);								//Alle P. werden synchronisiert
   }
-  return buf;											//der buf wird anschließend zurückgegeben.
+
+	return buf;
 }
 
 int
