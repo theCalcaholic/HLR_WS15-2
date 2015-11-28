@@ -11,12 +11,18 @@ print_rand_array(char* text, int rank,int maxnumber,int size,int* buf)
   {
   	printf("\n%s\n",text);
 	
-	for(int k = 0; buf[k] < 25 ;k++) printf("rank %d: %d\n", rank, buf[k]);
+	printf("rank %d\n", rank);
+	for(int k = 0; buf[k] < 25 ;k++) {
+		printf(" %d,", buf[k]);
+	}
   	for (int i = 1; i < size; i++)
   	{
 		int randmessage[maxnumber+1];
 	  	MPI_Recv (randmessage,maxnumber+1,MPI_INT,i,100,MPI_COMM_WORLD,NULL);
-	  	for(int l = 0;randmessage[l] < 25; l++) printf("rank %d: %d\n", i, randmessage[l]);
+			printf("\nrank %d, \n", i);
+	  	for(int l = 0;randmessage[l] < 25; l++) {
+				printf(" %d,", randmessage[l]);
+			}
   	}
   }
   else MPI_Send(buf, maxnumber+1, MPI_INT, 0, 100, MPI_COMM_WORLD);	
