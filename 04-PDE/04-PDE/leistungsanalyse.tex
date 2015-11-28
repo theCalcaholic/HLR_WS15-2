@@ -85,37 +85,56 @@
 \renewcommand{\thesubsubsection}{\roman{subsubsection})}
 \titleformat{\subsubsection}[runin]{\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
 
-\title{Visualisierung}
+\title{Leistungsanalyse}
+%\author{}
+%\date{\gertoday}
 \begin{document}
-\section{Anwendungsbeispiel}
-\begin{center}
-mpirun -np 8 circle 20\\
-\begin{tabular}{|l|l|}            \hline\hline
-Before & After\\
-rank 0: 22 & rank 0: 1\\ 
-rank 0: 12 & rank 0: 5\\
-rank 0: 11 & rank 0: 7\\
-rank 1: 1 & rank 1: 13\\
-rank 1: 5 & rank 1: 6\\
-rank 1: 7 & rank 1: 23\\
-rank 2: 13 & rank 2: 14\\
-rank 2: 6 & rank 2: 6\\
-rank 2: 23 & rank 2: 3\\
-rank 3: 14 & rank 3: 1\\
-rank 3: 6 & rank 3: 14\\
-rank 3: 3 & rank 4: 20\\
-rank 4: 1 & rank 4: 5\\
-rank 4: 14 & rank 5: 1\\
-rank 5: 20 & rank 5: 11\\
-rank 5: 5 & rank 6: 11\\
-rank 6: 1 & rank 6: 5\\
-rank 6: 11 & rank 7: 22\\
-rank 7: 11 & rank 7: 12\\
-rank 7: 5 & rank 7: 11\\
-\hline
-\end{tabular}
-\end{center}
-\section{Visualisierung}
+\section{variable Threadzahl}
+\begin{tikzpicture}
+  \begin{axis}[
+    xlabel=Threads,
+    ylabel=Berechnungsdauer,
+    xmin=0,
+    ymin=0,
+    xmax=12,
+    ymax=200,
+    width=\textwidth
+  ]
+  
+    \addplot[color=blue, mark=*]
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run2.dat};
+    \addplot[color=green, mark=*] 
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run3.dat};
+    \addplot[color=purple, mark=*] 
+        table[x=Threads, y=Berechnungsdauer]{pgfplots.performance_threads_run4.dat};
+    \legend{Testrun 1, Testrun 2, Testrun 3}
+  \end{axis}
+\end{tikzpicture}
 
+
+\section{variable Anzahl Interlines}
+
+\begin{tikzpicture}
+  \begin{axis}[
+    xlabel=Interlines,
+    ylabel=Berechnungsdauer,
+    xmin=0,
+    ymin=0,
+    xmax=1024,
+    ymax=800,
+    width=\textwidth
+  ]
+    \addplot[color=red, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run1.dat};
+    \addplot[color=blue, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run2.dat};
+    \addplot[color=green, mark=*]
+        table[x=Interlines, y=Berechnungsdauer]{pgfplots.performance_interlines_run3.dat};
+    \legend{Testrun 1, Testrun 2, Testrun 3}
+  \end{axis}
+\end{tikzpicture}
+
+Man kann anhand dieser Skizze erkennen, dass der Wachstum der Berechnungszeit ungefähr polynomial steigt. Über die Anfangswerte an Interlines (1- 16) kann man keine gute Aussage treffen, da die verschiedenen Tests ziemlich stark voneinander ausfallen. Erst ab 16 Interlines verdreifacht sich die Ausführung bei Quadrierung der Interlines. Dieser Faktor zwischen  $2^{n}$ und $2^{n+1}$ steigt ungefähr linear an. und hat entsprechend bei $n=9$ den größten Wert. Dieses Ergebnis war ungefähr zu erwarten, da die bei Hinzunahme von Interlines pontenziale Berechnungseinheiten mit sich zieht. 
+ 
 
 \end{document}
