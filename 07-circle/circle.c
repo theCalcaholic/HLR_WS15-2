@@ -11,15 +11,26 @@ print_rand_array(char* text, int rank,int maxnumber,int size,int* buf)
   {
   	printf("\n%s\n",text);
 	
-	for(int k = 0; buf[k] < 25 ;k++) printf("rank %d: %d\n", rank, buf[k]);
+	printf("rank %d\n", rank);
+	for(int k = 0; buf[k] < 25 ;k++) {
+		printf(" %d,", buf[k]);
+	}
   	for (int i = 1; i < size; i++)
   	{
 		int randmessage[maxnumber+1];
 	  	MPI_Recv (randmessage,maxnumber+1,MPI_INT,i,100,MPI_COMM_WORLD,NULL);
-	  	for(int l = 0;randmessage[l] < 25; l++) printf("rank %d: %d\n", i, randmessage[l]);
+			printf("\nrank %d, \n", i);
+	  	for(int l = 0;randmessage[l] < 25; l++) {
+				printf(" %d,", randmessage[l]);
+			}
   	}
   }
-  else MPI_Send(buf, maxnumber+1, MPI_INT, 0, 100, MPI_COMM_WORLD);	
+  else {
+		MPI_Send(buf, maxnumber+1, MPI_INT, 0, 100, MPI_COMM_WORLD);	
+	}
+	if(rank==0) {
+		printf("\n");
+	}
 }
 
 int*
@@ -47,9 +58,13 @@ circle (int* buf,int rank,int predecessor, int successor, int size, int maxnumbe
   int special_integer;										//Die Integerzahl, worauf der letzte Prozess wartet.
   int cycle_end;										//Boolean für das Ende des Zyklen
   
-  if(rank == size-1) MPI_Recv (&special_integer,1,MPI_INT,successor,11,MPI_COMM_WORLD,NULL);	//letzter P empfängt diese spezielle Zahl 
-  if(rank == 0) MPI_Send(&buf[0], 1, MPI_INT, predecessor, 11, MPI_COMM_WORLD);			//P 0 sendet die speziellen Zahl
-  if(rank == size-1) cycle_end = special_integer == newbuf[0];					//letzter P überprüft, ob Bedinung erfüllt ist
+  if(rank == 0) {
+		MPI_Send(&buf[0], 1, MPI_INT, predecessor, 11, MPI_COMM_WORLD);			//P 0 sendet die speziellen Zahl
+	}
+  if(rank == size-1) {
+		MPI_Recv (&special_integer,1,MPI_INT,successor,11,MPI_COMM_WORLD,NULL);	//letzter P empfängt diese spezielle Zahl 
+  	cycle_end = special_integer == newbuf[0];					//letzter P überprüft, ob Bedinung erfüllt ist
+	}
   MPI_Bcast(&cycle_end,1,MPI_INT,size-1, MPI_COMM_WORLD);					//und teilt das jeden Prozess mit.
 
  //Rotieren der Zufallszahlen.
@@ -57,16 +72,16 @@ circle (int* buf,int rank,int predecessor, int successor, int size, int maxnumbe
   {
 	  if(rank != 0)
 	  { 
-		MPI_Recv(newbuf,maxnumber + 1,MPI_INT,predecessor,3,MPI_COMM_WORLD,NULL);	//Alle außer der P 0 warten auf den buf
-		MPI_Send(buf,maxnumber + 1,MPI_INT,successor,3,MPI_COMM_WORLD);			//und senden es anschließend
-	  }
-	  else
-	  {
-		MPI_Send(buf,maxnumber + 1,MPI_INT,successor,3,MPI_COMM_WORLD);			//P 0 gibt den Anstoß
-		MPI_Recv(newbuf,maxnumber + 1,MPI_INT,predecessor,3,MPI_COMM_WORLD,NULL);	//und wartet auf den letzten P
+			MPI_Recv(newbuf,maxnumber + 1,MPI_INT,predecessor,3,MPI_COMM_WORLD,NULL);	//Alle außer der P 0 warten auf den buf
+			MPI_Send(buf,maxnumber + 1,MPI_INT,successor,3,MPI_COMM_WORLD);			//und senden es anschließend
+	  } else {
+			MPI_Send(buf,maxnumber + 1,MPI_INT,successor,3,MPI_COMM_WORLD);			//P 0 gibt den Anstoß
+			MPI_Recv(newbuf,maxnumber + 1,MPI_INT,predecessor,3,MPI_COMM_WORLD,NULL);	//und wartet auf den letzten P
 	  } 
 	  MPI_Barrier(MPI_COMM_WORLD);								//Alle P warten auf P 0 bzw. letzten P
-	  if(rank == size-1) cycle_end = special_integer == newbuf[0];				//letzter P überprüft ob Bedingung erfüllt ist
+	  if(rank == size-1) {
+			cycle_end = special_integer == newbuf[0];				//letzter P überprüft ob Bedingung erfüllt ist
+		}
 	  MPI_Bcast(&cycle_end,1,MPI_INT,size-1, MPI_COMM_WORLD); 				//teilt das Ergebnis allen mit
 	  buf = newbuf;										//der buf wird nun erneut
 	  newbuf = malloc(sizeof(int) * (maxnumber + 1));					//Empfangbuf wird anderen neuen Platz geschaffen
@@ -113,7 +128,9 @@ main (int argc, char** argv)
   buf = init(number_of_rand,number_of_rand_max,rank);//ermittelt number_of_rand Zufallszahlen.
 
   print_rand_array("Before",rank,number_of_rand_max,size,buf);
-  if(size > 1) buf = circle(buf,rank,predecessor,successor,size, number_of_rand_max);
+  if(size > 1) {
+		buf = circle(buf,rank,predecessor,successor,size, number_of_rand_max);
+	}
   print_rand_array("After",rank,number_of_rand_max,size,buf);
   MPI_Finalize();
   return EXIT_SUCCESS;
