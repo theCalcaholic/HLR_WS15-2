@@ -464,6 +464,7 @@ main (int argc, char** argv)
 	int size;							// Anzahl der P
 	int predecessor;						// Nachfolgerprozess
 	int successor;							// Vorgängerprozess
+	int size_lines;							// Anzahl der auszurechnenen Zeilen in der Matrix
 	int from;							// Zeile von "from"
 	int to;								// bis Zeile "to" der Matrix
 
@@ -490,6 +491,19 @@ main (int argc, char** argv)
 	
 	initVariables(&arguments, &results, &options);           
 
+	if(rank < (arguments.N % size))					// falls rank kleiner als der Rest ist
+	{
+		size_lines = arguments.N / size + 1;			// soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
+	}
+	else
+	{
+		size_lines = arguments.N / size;			// ansonten nur seinen Hauptteil 
+	}
+
+	from = rank * size_lines + 1;					//Matrix-zeile "von" ermitteln
+	to = (rank + 1) * size_lines;					//Matrix-zeile "bis" ermitteln
+
+
 	if ((options.method != METH_JACOBI) && (rank == 0)) 		// Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
 	{
 		from = 0;						//P 0 soll sich um alle Zeilen kümmern
@@ -509,7 +523,13 @@ main (int argc, char** argv)
 	}
 	else
 	{
-		//stuff for Jakobi-parallel
+		//TODO : allokieren der Matrix Zeiger und der benötigten und auszurechnenden Matrixzeilen
+		//TODO : Initialisierung der benötigten und auszurechnenden Matrixzeilen
+		//TODO : gettimeofday von Prozess 0 starten
+		//TODO : calculate2
+		//TODO : displayStatistics von einen Prozess
+		//TODO : DisplayMatrix2
+		//TODO : freeden der Matrixzeilen
 	}
 
 	MPI_Finalize();							//beendet MPI	
