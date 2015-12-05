@@ -43,6 +43,7 @@ struct calculation_arguments
 	int				size;
 	int 			from;
 	int				to;
+	int 			num_rows;
 };
 
 struct calculation_results
@@ -74,17 +75,23 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 	arguments->rank = rank;
   if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
     num_rows = arguments->N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
-    arguments->from = rank * num_rows + 1;       //Matrix-zeile "von" ermitteln
-    arguments->to = (rank + 1) * num_rows;       //Matrix-zeile "bis" ermitteln
+    arguments->from = 1;       //Matrix-zeile "von" ermitteln
+    arguments->to = 0;       //Matrix-zeile "bis" ermitteln
   } else {
     num_rows = arguments->N / size;      // ansonten nur seinen Hauptteil 
-    arguments->from = rank * num_rows + 1 + arguments->N % size;  //Matrix-zeile "von" ermitteln
-    arguments->to = (rank + 1) * num_rows + arguments->N % size;  //Matrix-zeile "bis" ermitteln
+    arguments->from = arguments->N % size;  //Matrix-zeile "von" ermitteln
+    arguments->to = arguments->N % size;  //Matrix-zeile "bis" ermitteln
   }
+
+	arguments->from += rank * num_rows;
+	arguments->to += (rank + 1) * num_rows;
+
   if(rank == size-1)            //der letzte Prozess
   {
     arguments->to = arguments->N - 1;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
   }
+
+	arguments->num_rows = num_rows;
 
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
   arguments->h = 1.0 / arguments->N;
@@ -142,17 +149,18 @@ allocateMatrices (struct calculation_arguments* arguments)
   uint64_t i, j;
 
   uint64_t const N = arguments->N;
+	uint64_t const num_rows = arguments->num_rows;
 
-  arguments->M = allocateMemory(arguments->num_matrices * (N + 1) * (N + 1) * sizeof(double));
+  arguments->M = allocateMemory(arguments->num_matrices * (num_rows + 1) * (N + 1) * sizeof(double));
   arguments->Matrix = allocateMemory(arguments->num_matrices * sizeof(double**));
 
   for (i = 0; i < arguments->num_matrices; i++)
   {
     arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double*));
 
-    for (j = 0; j <= N; j++)
+    for (j = 0; j <= num_rows; j++)
     {
-      arguments->Matrix[i][j] = arguments->M + (i * (N + 1) * (N + 1)) + (j * (N + 1));
+      arguments->Matrix[i][j] = arguments->M + (i * (num_rows + 1) * (N + 1)) + (j * (N + 1));
     }
   }
 }
@@ -167,13 +175,14 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   uint64_t g, i, j;                                /*  local variables for loops   */
 
   uint64_t const N = arguments->N;
+	uint64_t const num_rows = arguments->num_rows;
   double const h = arguments->h;
   double*** Matrix = arguments->Matrix;
 
   /* initialize matrix/matrices with zeros */
   for (g = 0; g < arguments->num_matrices; g++)
   {
-    for (i = 0; i <= N; i++)
+    for (i = 0; i <= num_rows; i++)
     {
       for (j = 0; j <= N; j++)
       {
@@ -690,16 +699,16 @@ main (int argc, char** argv)
       gettimeofday(&start_time,NULL);
     }
 
-    calculate2(&arguments, &results, &options);          /*  solve the equation  */
+    //calculate2(&arguments, &results, &options);          //  solve the equation 
     
     if(rank == 0)
     {
-    gettimeofday(&comp_time, NULL);                       
-    displayStatistics(&arguments, &results, &options);
+			gettimeofday(&comp_time, NULL);                       
+			displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options);
-    freeMatrices(&arguments);         //TODO hier entsprechend freeden.
+    //DisplayMatrix2 (&arguments,&results,&options);
+    freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
 
   MPI_Finalize();             //beendet MPI 
