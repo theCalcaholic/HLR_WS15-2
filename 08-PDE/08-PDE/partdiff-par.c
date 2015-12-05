@@ -227,13 +227,12 @@ calculate2 (
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 	MPI_Request requests[2];
 	MPI_Status  stats[2];
-	int rank, from, to;
+	int rank, from, to, size;
 
+	size = arguments->size;
 	rank = arguments->rank;
 	from = arguments->from;
 	to = arguments->to;
-
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   int const N = arguments->N;
   double const h = arguments->h;
@@ -325,15 +324,15 @@ calculate2 (
 
     // Send and recieve first and last matrix rows
     int predecessor = (arguments->rank == 0) ? NOBODY : rank-1;
-    int sucessor = (arguments->rank == arguments->size - 1) ? NOBODY : rank + 1;
+    int successor = (arguments->rank == arguments->size - 1) ? NOBODY : rank + 1;
 
-    if(predecessor != NOBODY) MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)   MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-    if(predecessor != NOBODY) MPI_Send(Matrix_Out[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)   MPI_Send(Matrix_Out[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(rank != 0) 			MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(rank != size-1)  MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(rank != 0) 			MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(rank != size-1)  MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
-    if(predecessor != NOBODY) MPI_Wait(&requests[0], &stats[0]);
-    if(successor != NOBODY)   MPI_Wait(&requests[1], &stats[1]);
+    if(rank != 0) MPI_Wait(&requests[0], &stats[0]);
+    if(rank != size-1)   MPI_Wait(&requests[1], &stats[1]);
   }
 
   results->m = m2;
@@ -508,26 +507,19 @@ displayStatistics (struct calculation_arguments const* arguments, struct calcula
 /****************************************************************************/
 static
 void
-DisplayMatrix (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank)
+DisplayMatrix (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options)
 {
-	//int N = arguments->N;
 
-	if( rank != 0 ) {
-		//MPI_Send(arguments->Matrix[results->m], N*N, MPI_DOUBLE, 0, COLLECT_PRINT_TAG, MPI_COMM_WORLD);
-	} else {
-		//MPI_Status stat;
 		int x, y;
 
 
 		double** Matrix;
-		//copyMatrix(arguments->Matrix[results->m], Matrix, N + 1);
 		Matrix = arguments->Matrix[results->m];
 
 
 		int const interlines = options->interlines;
 
 		printf("Matrix:\n");
-		//for(r = 1; r<= size; r++) {
 			for (y = 0; y < 9; y++)
 			{
 				for (x = 0; x < 9; x++)
@@ -537,21 +529,10 @@ DisplayMatrix (struct calculation_arguments* arguments, struct calculation_resul
 
 				printf ("\n");
 			}
-			//MPI_Recv(Matrix, (N + 1) * (N + 1), MPI_DOUBLE, r, COLLECT_PRINT_TAG, MPI_COMM_WORLD, stat);
-		//}
 
 		fflush (stdout);
-	}
 }
 
-/*static void copyMatrix(double** sourceM, double** destM, int size) {
-	int i, j;
-	for(i = 0; i < size; i++) {
-		for(j = 0; j < size; j++) {
-			sourceM[i][j] = destM[i][j];
-		}
-	}
-}*/
 
 /**
  * rank and size are the MPI rank and size, respectively.
@@ -565,15 +546,9 @@ DisplayMatrix (struct calculation_arguments* arguments, struct calculation_resul
  */
 static
 void
-DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options)
+DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank, int size, int from, int to)
 {
   int const elements = 8 * options->interlines + 9;
-	int rank, size, from, to;
-
-	rank = arguments->rank;
-	size = arguments->size;
-	from = arguments->from;
-	to = arguments->to;
 
   int x, y;
   double** Matrix = arguments->Matrix[results->m];
@@ -684,7 +659,7 @@ main (int argc, char** argv)
     gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
     displayStatistics(&arguments, &results, &options);
-    DisplayMatrix(&arguments, &results, &options, 0);
+    DisplayMatrix(&arguments, &results, &options);
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
@@ -698,7 +673,7 @@ main (int argc, char** argv)
       gettimeofday(&start_time,NULL);
     }
 
-    //calculate2(&arguments, &results, &options);          //  solve the equation 
+    calculate2(&arguments, &results, &options);          //  solve the equation 
     
     if(rank == 0)
     {
@@ -706,7 +681,8 @@ main (int argc, char** argv)
 			displayStatistics(&arguments, &results, &options);
     }
 
-    //DisplayMatrix2 (&arguments,&results,&options);
+    //DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, 0, arguments.N);
+		printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
 
