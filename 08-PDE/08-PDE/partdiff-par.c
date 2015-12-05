@@ -494,15 +494,19 @@ main (int argc, char** argv)
 	if(rank < (arguments.N % size))					// falls rank kleiner als der Rest ist
 	{
 		size_lines = arguments.N / size + 1;			// soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
+		from = rank * size_lines + 1;				//Matrix-zeile "von" ermitteln
+		to = (rank + 1) * size_lines;				//Matrix-zeile "bis" ermitteln
 	}
 	else
 	{
 		size_lines = arguments.N / size;			// ansonten nur seinen Hauptteil 
+		from = rank * size_lines + 1 + arguments.N % size;	//Matrix-zeile "von" ermitteln
+		to = (rank + 1) * size_lines + arguments.N % size;	//Matrix-zeile "bis" ermitteln
 	}
-
-	from = rank * size_lines + 1;					//Matrix-zeile "von" ermitteln
-	to = (rank + 1) * size_lines;					//Matrix-zeile "bis" ermitteln
-
+	if(rank == size-1)						//der letzte Prozess
+	{
+		to = to -1;						//soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
+	}
 
 	if ((options.method != METH_JACOBI) && (rank == 0)) 		// Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
 	{
@@ -521,15 +525,26 @@ main (int argc, char** argv)
 
 		freeMatrices(&arguments);                         	/*  free memory     */
 	}
-	else
+
+	if(options.method == METH_JACOBI)
 	{
-		//TODO : allokieren der Matrix Zeiger und der benötigten und auszurechnenden Matrixzeilen
-		//TODO : Initialisierung der benötigten und auszurechnenden Matrixzeilen
-		//TODO : gettimeofday von Prozess 0 starten
+		allocateMatrices(&arguments);				//TODO hier könnte man evtl. nur die bestimmten Zeilen allokieren.
+		initMatrices(&arguments, &options);         		//TODO hier könnten man evtl. nur die bestimmten Zeilen initialiseren. 
+		if(rank == 0)
+		{
+			gettimeofday(&start_time,NULL);
+		}
+
 		//TODO : calculate2
-		//TODO : displayStatistics von einen Prozess
-		//TODO : DisplayMatrix2
-		//TODO : freeden der Matrixzeilen
+		
+		if(rank == 0)
+		{
+		gettimeofday(&comp_time, NULL);                   		
+		displayStatistics(&arguments, &results, &options);
+		}
+
+		DisplayMatrix2 (&arguments,&results,&options,rank,size,from,to);
+		freeMatrices(&arguments); 				//TODO hier entsprechend freeden.
 	}
 
 	MPI_Finalize();							//beendet MPI	
