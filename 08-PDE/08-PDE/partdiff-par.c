@@ -199,6 +199,8 @@ calculate2 (
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 	int size, predecessor, successor;
+	MPI_Request requests[2];
+	MPI_Status  stats[2];
 
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
   predecessor = (rank == 0) ? NOBODY : rank-1;      // Setzt den Vorgängerprozess außer bei P0  
@@ -292,17 +294,14 @@ calculate2 (
     }
 
     // Send and recieve first and last matrix rows
-    MPI_Request requests[2];
-    MPI_Status  stats[2];
 
-    if(predecessor != NOBODY) MPI_Irecv(&Matrix_In[from - 1], N, MPI_FLOAT, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)   MPI_Irecv(&Matrix_In[to + 1], N, MPI_FLOAT, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-    if(predecessor != NOBODY) MPI_Send(&Matrix_Out[from - 1], N, MPI_FLOAT, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)   MPI_Send(&Matrix_Out[to + 1], N, MPI_FLOAT, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(predecessor != NOBODY) MPI_Irecv(Matrix_In[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)   MPI_Irecv(Matrix_In[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(predecessor != NOBODY) MPI_Send(Matrix_Out[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)   MPI_Send(Matrix_Out[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
     if(predecessor != NOBODY) MPI_Wait(&requests[0], &stats[0]);
     if(successor != NOBODY)   MPI_Wait(&requests[1], &stats[1]);
-    //TODO hier muss from-1 und to+1 an alle Prozesse geupdatet werden.
   }
 
   results->m = m2;
@@ -617,7 +616,7 @@ main (int argc, char** argv)
   
   initVariables(&arguments, &results, &options);           
 
-  if(rank < (arguments.N % size))         // falls rank kleiner als der Rest ist
+  if((unsigned int) rank < (arguments.N % size))         // falls rank kleiner als der Rest ist
   {
     size_lines = arguments.N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
     from = rank * size_lines + 1;       //Matrix-zeile "von" ermitteln
