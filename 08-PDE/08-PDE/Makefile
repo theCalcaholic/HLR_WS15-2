@@ -1,5 +1,5 @@
 # Common definitions
-CC = gcc
+CC = mpicc
 
 # Compiler flags, paths and libraries
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -O2 -ggdb
@@ -19,7 +19,7 @@ partdiff-par: $(OBJS) Makefile
 	$(CC) $(LFLAGS) -o $@ $(OBJS) $(LIBS)
 
 clean:
-	$(RM) *.o *~
+	$(RM) *.o *~ partdiff-par
 
 partdiff-par.o: partdiff-par.c Makefile
 
