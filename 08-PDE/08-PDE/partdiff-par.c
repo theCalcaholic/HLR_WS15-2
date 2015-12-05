@@ -234,7 +234,7 @@ calculate2 (
     maxresiduum = 0;
 
     /* over all rows */
-    for (i = 1; i < arguments->num_rows +1; i++)
+    for (i = 1; i < arguments->num_rows; i++)
     {
       double fpisin_i = 0.0;
 
