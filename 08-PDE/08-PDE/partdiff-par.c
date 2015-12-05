@@ -196,15 +196,17 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   {
     for (g = 0; g < arguments->num_matrices; g++)
     {
-      for (i = 0; i <= N; i++)
+      for (i = 0; i <= num_rows; i++)
       {
         Matrix[g][i][0] = 1.0 - (h * i);
         Matrix[g][i][N] = h * i;
-        Matrix[g][0][i] = 1.0 - (h * i);
-        Matrix[g][N][i] = h * i;
       }
+			for (i = 0; i <= N; i++) {
+        Matrix[g][0][i] = 1.0 - (h * i);
+        Matrix[g][num_rows][i] = h * i;
+			}
 
-      Matrix[g][N][0] = 0.0;
+      Matrix[g][num_rows][0] = 0.0;
       Matrix[g][0][N] = 0.0;
     }
   }
@@ -326,13 +328,13 @@ calculate2 (
     int predecessor = (arguments->rank == 0) ? NOBODY : rank-1;
     int successor = (arguments->rank == arguments->size - 1) ? NOBODY : rank + 1;
 
-    if(rank != 0) 			MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(rank != size-1)  MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-    if(rank != 0) 			MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(rank != size-1)  MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(predecessor != NOBODY)		MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(predecessor != NOBODY) 	MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
-    if(rank != 0) MPI_Wait(&requests[0], &stats[0]);
-    if(rank != size-1)   MPI_Wait(&requests[1], &stats[1]);
+    if(rank != 0) 			MPI_Wait(&requests[0], &stats[0]);
+    if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
   }
 
   results->m = m2;
