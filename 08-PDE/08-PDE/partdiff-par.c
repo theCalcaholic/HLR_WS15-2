@@ -20,6 +20,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #define NOBODY -10
+#define MAT_EXCHANGE_TAG 5
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,14 +184,27 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 /* ************************************************************************ */
 static
 void
-calculate2 (struct calculation_arguments const* arguments, struct calculation_results *results, struct options const* options
-    ,int rank ,int from, int to)
-{
+calculate2 (
+	struct calculation_arguments const* arguments, 
+	struct calculation_results *results, 
+	struct options const* options,
+	int rank, 
+	int from, 
+	int to
+){
+	
   int i, j;                                   /* local variables for loops  */
   int m1, m2;                                 /* used as indices for old and new matrices       */
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
+	int size, predecessor, successor;
+	MPI_Request requests[2];
+	MPI_Status  stats[2];
+
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+  predecessor = (rank == 0) ? NOBODY : rank-1;      // Setzt den Vorgängerprozess außer bei P0  
+  successor = (rank == size-1) ? NOBODY : rank+1;     // Setzt den Nachfolgerprozess außer beim letzten P 
 
   int const N = arguments->N;
   double const h = arguments->h;
@@ -279,8 +293,16 @@ calculate2 (struct calculation_arguments const* arguments, struct calculation_re
     {
       term_iteration--;
     }
-    
-    //TODO hier muss from-1 und to+1 an alle Prozesse geupdatet werden.
+
+    // Send and recieve first and last matrix rows
+
+    if(predecessor != NOBODY) MPI_Irecv(Matrix_In[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)   MPI_Irecv(Matrix_In[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(predecessor != NOBODY) MPI_Send(Matrix_Out[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)   MPI_Send(Matrix_Out[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+
+    if(predecessor != NOBODY) MPI_Wait(&requests[0], &stats[0]);
+    if(successor != NOBODY)   MPI_Wait(&requests[1], &stats[1]);
   }
 
   results->m = m2;
@@ -570,8 +592,6 @@ main (int argc, char** argv)
   
   int rank;             // Nummer des P
   int size;             // Anzahl der P
-  int predecessor;            // Nachfolgerprozess
-  int successor;              // Vorgängerprozess
   int size_lines;             // Anzahl der auszurechnenen Zeilen in der Matrix
   int from;             // Zeile von "from"
   int to;               // bis Zeile "to" der Matrix
@@ -579,8 +599,6 @@ main (int argc, char** argv)
   MPI_Init(&argc, &argv);                         // MPI initialisieren
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);           // Nummer des P holen 
   MPI_Comm_size(MPI_COMM_WORLD, &size);           // Anzahl der P holen
-  predecessor = (rank == 0) ? NOBODY : rank-1;      // Setzt den Vorgängerprozess außer bei P0  
-  successor = (rank == size-1) ? NOBODY : rank+1;     // Setzt den Nachfolgerprozess außer beim letzten P 
 
   if(rank == 0)
   {
@@ -599,7 +617,7 @@ main (int argc, char** argv)
   
   initVariables(&arguments, &results, &options);           
 
-  if(rank < (arguments.N % size))         // falls rank kleiner als der Rest ist
+  if((unsigned int) rank < (arguments.N % size))         // falls rank kleiner als der Rest ist
   {
     size_lines = arguments.N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
     from = rank * size_lines + 1;       //Matrix-zeile "von" ermitteln
@@ -643,7 +661,7 @@ main (int argc, char** argv)
       gettimeofday(&start_time,NULL);
     }
 
-    //TODO : calculate2
+    calculate2(&arguments, &results, &options, rank, from, to);          /*  solve the equation  */
     
     if(rank == 0)
     {
