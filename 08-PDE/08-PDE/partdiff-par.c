@@ -259,7 +259,8 @@ calculate2 (struct calculation_arguments const* arguments, struct calculation_re
     results->stat_iteration++;
     results->stat_precision = maxresiduum;
 
-    //TODO hier muss der minimum von maxresiduum an alle gesendet werden
+    MPI_Allreduce(&maxresiduum,&maxresiduum,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+
 
     /* exchange m1 and m2 */
     i = m1;
