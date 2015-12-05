@@ -39,6 +39,10 @@ struct calculation_arguments
   double    h;              /* length of a space between two lines            */
   double    ***Matrix;      /* index matrix used for addressing M             */
   double    *M;             /* two matrices with real values                  */
+	int 			rank;
+	int				size;
+	int 			from;
+	int				to;
 };
 
 struct calculation_results
@@ -62,9 +66,26 @@ struct timeval comp_time;        /* time when calculation completed             
 /* ************************************************************************ */
 static
 void
-initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options)
+initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options, int rank, int size)
 {
-  arguments->N = (options->interlines * 8) + 9 - 1;
+	int num_rows;
+
+	arguments->N = (options->interlines * 8) + 9 -1;
+	arguments->rank = rank;
+  if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
+    num_rows = arguments->N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
+    arguments->from = rank * num_rows + 1;       //Matrix-zeile "von" ermitteln
+    arguments->to = (rank + 1) * num_rows;       //Matrix-zeile "bis" ermitteln
+  } else {
+    num_rows = arguments->N / size;      // ansonten nur seinen Hauptteil 
+    arguments->from = rank * num_rows + 1 + arguments->N % size;  //Matrix-zeile "von" ermitteln
+    arguments->to = (rank + 1) * num_rows + arguments->N % size;  //Matrix-zeile "bis" ermitteln
+  }
+  if(rank == size-1)            //der letzte Prozess
+  {
+    arguments->to = arguments->N - 1;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
+  }
+
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
   arguments->h = 1.0 / arguments->N;
 
@@ -187,10 +208,7 @@ void
 calculate2 (
 	struct calculation_arguments const* arguments, 
 	struct calculation_results *results, 
-	struct options const* options,
-	int rank, 
-	int from, 
-	int to
+	struct options const* options
 ){
 	
   int i, j;                                   /* local variables for loops  */
@@ -201,6 +219,11 @@ calculate2 (
 	int size, predecessor, successor;
 	MPI_Request requests[2];
 	MPI_Status  stats[2];
+	int rank, from, to;
+
+	rank = arguments->rank;
+	from = arguments->from;
+	to = arguments->to;
 
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
   predecessor = (rank == 0) ? NOBODY : rank-1;      // Setzt den Vorgängerprozess außer bei P0  
@@ -477,28 +500,50 @@ displayStatistics (struct calculation_arguments const* arguments, struct calcula
 /****************************************************************************/
 static
 void
-DisplayMatrix (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options)
+DisplayMatrix (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank)
 {
-  int x, y;
+	//int N = arguments->N;
 
-  double** Matrix = arguments->Matrix[results->m];
+	if( rank != 0 ) {
+		//MPI_Send(arguments->Matrix[results->m], N*N, MPI_DOUBLE, 0, COLLECT_PRINT_TAG, MPI_COMM_WORLD);
+	} else {
+		//MPI_Status stat;
+		int x, y;
 
-  int const interlines = options->interlines;
 
-  printf("Matrix:\n");
+		double** Matrix;
+		//copyMatrix(arguments->Matrix[results->m], Matrix, N + 1);
+		Matrix = arguments->Matrix[results->m];
 
-  for (y = 0; y < 9; y++)
-  {
-    for (x = 0; x < 9; x++)
-    {
-      printf ("%7.4f", Matrix[y * (interlines + 1)][x * (interlines + 1)]);
-    }
 
-    printf ("\n");
-  }
+		int const interlines = options->interlines;
 
-  fflush (stdout);
+		printf("Matrix:\n");
+		//for(r = 1; r<= size; r++) {
+			for (y = 0; y < 9; y++)
+			{
+				for (x = 0; x < 9; x++)
+				{
+					printf ("%7.4f", Matrix[y * (interlines + 1)][x * (interlines + 1)]);
+				}
+
+				printf ("\n");
+			}
+			//MPI_Recv(Matrix, (N + 1) * (N + 1), MPI_DOUBLE, r, COLLECT_PRINT_TAG, MPI_COMM_WORLD, stat);
+		//}
+
+		fflush (stdout);
+	}
 }
+
+/*static void copyMatrix(double** sourceM, double** destM, int size) {
+	int i, j;
+	for(i = 0; i < size; i++) {
+		for(j = 0; j < size; j++) {
+			sourceM[i][j] = destM[i][j];
+		}
+	}
+}*/
 
 /**
  * rank and size are the MPI rank and size, respectively.
@@ -512,9 +557,15 @@ DisplayMatrix (struct calculation_arguments* arguments, struct calculation_resul
  */
 static
 void
-DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank, int size, int from, int to)
+DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options)
 {
   int const elements = 8 * options->interlines + 9;
+	int rank, size, from, to;
+
+	rank = arguments->rank;
+	size = arguments->size;
+	from = arguments->from;
+	to = arguments->to;
 
   int x, y;
   double** Matrix = arguments->Matrix[results->m];
@@ -592,9 +643,6 @@ main (int argc, char** argv)
   
   int rank;             // Nummer des P
   int size;             // Anzahl der P
-  int size_lines;             // Anzahl der auszurechnenen Zeilen in der Matrix
-  int from;             // Zeile von "from"
-  int to;               // bis Zeile "to" der Matrix
 
   MPI_Init(&argc, &argv);                         // MPI initialisieren
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);           // Nummer des P holen 
@@ -615,29 +663,10 @@ main (int argc, char** argv)
   MPI_Bcast(&(options.term_iteration),1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(options.term_precision),1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   
-  initVariables(&arguments, &results, &options);           
-
-  if((unsigned int) rank < (arguments.N % size))         // falls rank kleiner als der Rest ist
-  {
-    size_lines = arguments.N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
-    from = rank * size_lines + 1;       //Matrix-zeile "von" ermitteln
-    to = (rank + 1) * size_lines;       //Matrix-zeile "bis" ermitteln
-  }
-  else
-  {
-    size_lines = arguments.N / size;      // ansonten nur seinen Hauptteil 
-    from = rank * size_lines + 1 + arguments.N % size;  //Matrix-zeile "von" ermitteln
-    to = (rank + 1) * size_lines + arguments.N % size;  //Matrix-zeile "bis" ermitteln
-  }
-  if(rank == size-1)            //der letzte Prozess
-  {
-    to = to -1;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
-  }
+  initVariables(&arguments, &results, &options, rank, size);           
 
   if ((options.method != METH_JACOBI) && (rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
   {
-    from = 0;           //P 0 soll sich um alle Zeilen kümmern
-    to = arguments.N;         //(eigentlich nicht notwendig, dient der Lesbarkeit)
 
     allocateMatrices(&arguments);             /*  get and initialize variables and matrices  */
     initMatrices(&arguments, &options);          
@@ -647,21 +676,21 @@ main (int argc, char** argv)
     gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
     displayStatistics(&arguments, &results, &options);
-    DisplayMatrix(&arguments, &results, &options);
+    DisplayMatrix(&arguments, &results, &options, 0);
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
 
   if(options.method == METH_JACOBI)
   {
-    allocateMatrices(&arguments);       //TODO hier könnte man evtl. nur die bestimmten Zeilen allokieren.
+    allocateMatrices(&arguments);       //DONE hier könnte man evtl. nur die bestimmten Zeilen allokieren.
     initMatrices(&arguments, &options);             //TODO hier könnten man evtl. nur die bestimmten Zeilen initialiseren. 
     if(rank == 0)
     {
       gettimeofday(&start_time,NULL);
     }
 
-    calculate2(&arguments, &results, &options, rank, from, to);          /*  solve the equation  */
+    calculate2(&arguments, &results, &options);          /*  solve the equation  */
     
     if(rank == 0)
     {
@@ -669,7 +698,7 @@ main (int argc, char** argv)
     displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options,rank,size,from,to);
+    DisplayMatrix2 (&arguments,&results,&options);
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.
   }
 
