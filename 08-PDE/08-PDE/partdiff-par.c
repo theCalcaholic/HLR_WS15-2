@@ -188,9 +188,6 @@ calculate2 (
 	struct calculation_arguments const* arguments, 
 	struct calculation_results *results, 
 	struct options const* options,
-	int rank, 
-	int from, 
-	int to
 ){
 	
   int i, j;                                   /* local variables for loops  */
@@ -198,13 +195,10 @@ calculate2 (
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
-	int size, predecessor, successor;
 	MPI_Request requests[2];
 	MPI_Status  stats[2];
 
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-  predecessor = (rank == 0) ? NOBODY : rank-1;      // Setzt den Vorgängerprozess außer bei P0  
-  successor = (rank == size-1) ? NOBODY : rank+1;     // Setzt den Nachfolgerprozess außer beim letzten P 
 
   int const N = arguments->N;
   double const h = arguments->h;
@@ -240,7 +234,7 @@ calculate2 (
     maxresiduum = 0;
 
     /* over all rows */
-    for (i = from; i < to; i++)
+    for (i = 1; i < arguments->num_rows +1; i++)
     {
       double fpisin_i = 0.0;
 
@@ -295,11 +289,13 @@ calculate2 (
     }
 
     // Send and recieve first and last matrix rows
+    int predecessor = (arguments->rank == 0) ? NOBODY : rank-1;
+    int sucessor = (arguments->rank == arguments->size - 1) ? NOBODY : rank + 1;
 
-    if(predecessor != NOBODY) MPI_Irecv(Matrix_In[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)   MPI_Irecv(Matrix_In[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-    if(predecessor != NOBODY) MPI_Send(Matrix_Out[from - 1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)   MPI_Send(Matrix_Out[to + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(predecessor != NOBODY) MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)   MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(predecessor != NOBODY) MPI_Send(Matrix_Out[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)   MPI_Send(Matrix_Out[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
     if(predecessor != NOBODY) MPI_Wait(&requests[0], &stats[0]);
     if(successor != NOBODY)   MPI_Wait(&requests[1], &stats[1]);
