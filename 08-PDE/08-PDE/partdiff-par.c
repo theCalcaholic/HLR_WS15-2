@@ -305,7 +305,10 @@ calculate2 (
 					maxresiduum_send = maxresiduum;
 					//printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
 					MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
-					if(rank == 0) printf("global maxresiduum=%f\n", maxresiduum);
+					if(rank == 0) {
+            printf("global maxresiduum=%f\n", maxresiduum);
+            printf("local maxresiduum=%f\n", maxresiduum_send);
+          }
         }
 
         Matrix_Out[i][j] = star;
