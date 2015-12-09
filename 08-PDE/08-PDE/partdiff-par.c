@@ -71,7 +71,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 {
 	int num_rows;
 
-	arguments->N = (options->interlines * 8) + 9 -1; //breite der (berechneten) matrix 
+	arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
 	arguments->rank = rank;	//rang des prozesses
 
   if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
@@ -80,7 +80,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
     arguments->to = 0;       //Matrix-zeile "bis" ermitteln
   } else {
     num_rows = arguments->N / size;      // ansonten nur seinen Hauptteil 
-    arguments->from = arguments->N % size;  //Matrix-zeile "von" ermitteln
+    arguments->from = 1 + arguments->N % size;  //Matrix-zeile "von" ermitteln
     arguments->to = arguments->N % size;  //Matrix-zeile "bis" ermitteln
   }
 
@@ -91,7 +91,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   if(rank == size-1)            //der letzte Prozess
   {
-    arguments->to = arguments->N - 1;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
+    arguments->to = arguments->N ;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
   }
 
 	arguments->num_rows = num_rows;			// Höhe der (berechneten) Matrix des aktuellen Prozesses
@@ -102,6 +102,8 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
   results->m = 0;
   results->stat_iteration = 0;
   results->stat_precision = 0;
+
+	printf("initVariables:\n  rank: %d\n  N: %d\n  from: %d\n  to: %d\n", rank,	arguments->N, arguments->from, arguments->to);
 }
 
 /* ************************************************************************ */
@@ -557,6 +559,8 @@ static
 void
 DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank, int size, int from, int to)
 {
+	//printf("Displaying - rank %d: from %d to %d\n", rank, from, to);
+	
   int const elements = 8 * options->interlines + 9;
 
   int x, y;
@@ -578,6 +582,7 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
   {
     int line = y * (options->interlines + 1);
 
+		//printf("DM: Doing MPI stuff... line:%d\n", line);
     if (rank == 0)
     {
       /* check whether this line belongs to rank 0 */
@@ -597,6 +602,8 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
         MPI_Send(Matrix[line - from + 1], elements, MPI_DOUBLE, 0, 42 + y, MPI_COMM_WORLD);
       }
     }
+
+		//printf("MPI stuff finished\n");
 
     if (rank == 0)
     {
@@ -619,6 +626,8 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
       printf("\n");
     }
   }
+
+	//printf("DisplayMatrix2 finished");
 
   fflush(stdout);
 }
@@ -690,7 +699,7 @@ main (int argc, char** argv)
 			displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, 0, arguments.N);
+		DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, arguments.from, arguments.to);
 		printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
