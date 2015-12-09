@@ -97,7 +97,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 	arguments->num_rows = num_rows;			// Höhe der (berechneten) Matrix des aktuellen Prozesses
 
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
-  arguments->h = 1.0 / arguments->N;
+  arguments->h = 1.0 / arguments->num_rows;
 
   results->m = 0;
   results->stat_iteration = 0;
