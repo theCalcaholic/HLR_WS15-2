@@ -30,7 +30,7 @@
 #include <malloc.h>
 #include <sys/time.h>
 #include <mpi.h>
-#include "partdiff-seq.h"
+#include "partdiff-par.h"
 
 struct calculation_arguments
 {
@@ -71,8 +71,9 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 {
 	int num_rows;
 
-	arguments->N = (options->interlines * 8) + 9 -1;
-	arguments->rank = rank;
+	arguments->N = (options->interlines * 8) + 9 -1; //breite der (berechneten) matrix 
+	arguments->rank = rank;	//rang des prozesses
+
   if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
     num_rows = arguments->N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
     arguments->from = 1;       //Matrix-zeile "von" ermitteln
@@ -86,12 +87,14 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 	arguments->from += rank * num_rows;
 	arguments->to += (rank + 1) * num_rows;
 
+	arguments->size = size;
+
   if(rank == size-1)            //der letzte Prozess
   {
     arguments->to = arguments->N - 1;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
   }
 
-	arguments->num_rows = num_rows;
+	arguments->num_rows = num_rows;			// Höhe der (berechneten) Matrix des aktuellen Prozesses
 
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
   arguments->h = 1.0 / arguments->N;
@@ -158,6 +161,7 @@ allocateMatrices (struct calculation_arguments* arguments)
   {
     arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double*));
 
+		// The height of each matrix is saved in num_rows
     for (j = 0; j <= num_rows; j++)
     {
       arguments->Matrix[i][j] = arguments->M + (i * (num_rows + 1) * (N + 1)) + (j * (N + 1));
@@ -325,13 +329,16 @@ calculate2 (
     }
 
     // Send and recieve first and last matrix rows
-    int predecessor = (arguments->rank == 0) ? NOBODY : rank-1;
-    int successor = (arguments->rank == arguments->size - 1) ? NOBODY : rank + 1;
+    int predecessor = (rank == 0) ? NOBODY : rank-1;
+    int successor = (rank == size - 1) ? NOBODY : rank + 1;
 
+
+		//Non-blockingly receiving first row of successor and last row of predecessor
     if(predecessor != NOBODY)		MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows ], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+		//blockingly sending first row to predecessor and last row to successor
     if(predecessor != NOBODY) 	MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows - 1 ], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
     if(rank != 0) 			MPI_Wait(&requests[0], &stats[0]);
     if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
@@ -683,7 +690,7 @@ main (int argc, char** argv)
 			displayStatistics(&arguments, &results, &options);
     }
 
-    //DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, 0, arguments.N);
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, 0, arguments.N);
 		printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
