@@ -342,10 +342,10 @@ calculate2 (
 
 		//Non-blockingly receiving first row of successor and last row of predecessor
     if(predecessor != NOBODY)		MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
 		//blockingly sending first row to predecessor and last row to successor
     if(predecessor != NOBODY) 	MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
     if(rank != 0) 			MPI_Wait(&requests[0], &stats[0]);
     if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
