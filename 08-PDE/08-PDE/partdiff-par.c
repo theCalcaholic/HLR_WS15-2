@@ -205,11 +205,11 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
       for (i = 0; i <= num_rows; i++)
       {
         Matrix[g][i][0] = 1.0 - (h * i);
-        Matrix[g][i][N] = h * i;
+        Matrix[g][i][N] = h * (i + arguments->from);
       }
 			for (i = 0; i <= N; i++) {
-        Matrix[g][0][i] = 1.0 - (h * i);
-        Matrix[g][num_rows][i] = h * i;
+        Matrix[g][0][i] = 1.0 - (h * (i + arguments->from));
+        Matrix[g][num_rows][i] = h * (i + arguments->from);
 			}
 
       Matrix[g][num_rows][0] = 0.0;
@@ -284,7 +284,7 @@ calculate2 (
 
       if (options->inf_func == FUNC_FPISIN)
       {
-        fpisin_i = fpisin * sin(pih * (double)i);
+        fpisin_i = fpisin * sin(pih * ((double)i + arguments->from));
       }
 
       /* over all columns */
