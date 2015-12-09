@@ -233,6 +233,7 @@ calculate2 (
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
+	double maxresiduum_send;
 	MPI_Request requests[2];
 	MPI_Status  stats[2];
 	int rank, from, to, size;
@@ -274,6 +275,7 @@ calculate2 (
     double** Matrix_In  = arguments->Matrix[m2];
 
     maxresiduum = 0;
+		maxresiduum_send = 0;
 
     /* over all rows */
     for (i = 1; i < arguments->num_rows; i++)
@@ -300,6 +302,10 @@ calculate2 (
           residuum = Matrix_In[i][j] - star;
           residuum = (residuum < 0) ? -residuum : residuum;
           maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
+					maxresiduum_send = maxresiduum;
+					//printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
+					MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+					//if(arguments->rank == 0) printf("global maxresiduum=%f\n", maxresiduum);
         }
 
         Matrix_Out[i][j] = star;
@@ -309,7 +315,6 @@ calculate2 (
     results->stat_iteration++;
     results->stat_precision = maxresiduum;
 
-    MPI_Allreduce(&maxresiduum,&maxresiduum,1,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
 
 
     /* exchange m1 and m2 */
@@ -337,10 +342,10 @@ calculate2 (
 
 		//Non-blockingly receiving first row of successor and last row of predecessor
     if(predecessor != NOBODY)		MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows ], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows + 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
 		//blockingly sending first row to predecessor and last row to successor
     if(predecessor != NOBODY) 	MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows - 1 ], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
     if(rank != 0) 			MPI_Wait(&requests[0], &stats[0]);
     if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
