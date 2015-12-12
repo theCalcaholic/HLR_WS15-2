@@ -69,22 +69,23 @@ static
 void
 initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options, int rank, int size)
 {
-  int num_rows;
+  int num_rows, rest;
 
   arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
   arguments->rank = rank; //rang des prozesses
   num_rows = (arguments->N + 1) / size;
+	rest = (arguments->N + 1) % size;
 
-  arguments->from += rank * num_rows;
+  arguments->from = rank * num_rows;
 
-  if( (unsigned int)rank < arguments->N % size ) {
+  if( (unsigned int) rank < rest ) {
     arguments->from += rank;
-    arguments->to = arguments->from + num_rows;
+    arguments->to = (rank + 1) * num_rows + rank;
   } else {
-    arguments->from += arguments->N % size;
-    arguments->to = arguments->from + num_rows - 1;
+    arguments->from += rest;
+    arguments->to = (rank + 1) * num_rows + rest - 1;
   }
-
+	
   arguments->size = size;
 
   if( rank > 0 ) {
@@ -98,7 +99,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
     num_rows++;
   }
 
-  if( (unsigned int)rank < arguments->N % size ) {
+  if( (unsigned int)rank < rest ) {
     num_rows++;
   }
 
@@ -111,11 +112,11 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
   results->stat_iteration = 0;
   results->stat_precision = 0;
 
-  int i;
+  /*int i;
   for(i = 0; i < arguments->size; i++) {
     if(rank == i) printf("initVariables:\n  rank: %d\n  N: %d\n  num_rows: %d\n  from: %d\n  to: %d\n", rank, arguments->N, (int)arguments->num_rows, arguments->from, arguments->to);
     MPI_Barrier(MPI_COMM_WORLD);
-  }
+  }*/
 }
 
 /* ************************************************************************ */
@@ -299,17 +300,14 @@ calculate2 (
     double** Matrix_In  = arguments->Matrix[m2];
 
     maxresiduum = 0;
-    maxresiduum_send = 0;
 
-
-    // Send and recieve first and last matrix rows
     int predecessor = (rank == 0) ? NOBODY : rank-1;
     int successor = (rank == size - 1) ? NOBODY : rank + 1;
 
 
 
     /* over all rows */
-    for (i = 1; i < num_rows - 2; i++)
+    for (i = 1; i < num_rows - 1; i++)
     {
       double fpisin_i = 0.0;
 
@@ -333,7 +331,6 @@ calculate2 (
           residuum = Matrix_In[i][j] - star;
           residuum = (residuum < 0) ? -residuum : residuum;
           maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
-          //maxresiduum_send = maxresiduum;
           //printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
           //MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
           /*if(rank == 0) {
@@ -348,13 +345,13 @@ calculate2 (
       // After second row is calculated, send it to predecessor and be ready to receive first row
       if( i == 1 && predecessor != NOBODY) {
         MPI_Isend(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[0]);
-        MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
+        MPI_Irecv(Matrix_Out[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
       }
     }
 
     // After second last row is calculated, send it to successor and be ready to receive last row
     if(successor != NOBODY)     MPI_Isend(Matrix_Out[num_rows - 2], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[0]);
-    if(successor != NOBODY)     MPI_Irecv(Matrix_In[num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[1]);
+    if(successor != NOBODY)     MPI_Irecv(Matrix_Out[num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[1]);
 
     if(predecessor != NOBODY) 
       MPI_Waitall(2, predecessor_requests, stats);
@@ -727,6 +724,7 @@ main (int argc, char** argv)
   {
     allocateMatrices(&arguments);       //DONE hier könnte man evtl. nur die bestimmten Zeilen allokieren.
     initMatrices(&arguments, &options);             //TODO hier könnten man evtl. nur die bestimmten Zeilen initialiseren. 
+
     if(rank == 0)
     {
       gettimeofday(&start_time,NULL);
@@ -740,7 +738,7 @@ main (int argc, char** argv)
       displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.num_rows, arguments.from + 1, arguments.to - 1);
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.num_rows, arguments.from + 1, arguments.to);
     printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
