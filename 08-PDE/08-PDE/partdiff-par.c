@@ -78,11 +78,11 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   num_rows = base_length + 2;
 
-  if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
+  if((unsigned int) rank < ((arguments->N - 1) % size)) {        // falls rank kleiner als der Rest ist
     num_rows += 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
     arguments->from = rank * base_length + (rank + 1) + (rank * 2);       //Matrix-zeile "von" ermitteln
   } else {
-    arguments->from = rank * base_length + (arguments->N % size) + (rank * 2);  //Matrix-zeile "von" ermitteln
+    arguments->from = rank * base_length + ((arguments->N - 1) % size) + (rank * 2);  //Matrix-zeile "von" ermitteln
   }
   arguments->to = arguments->from + num_rows - 1;       //Matrix-zeile "bis" ermitteln
   arguments->size = size;
