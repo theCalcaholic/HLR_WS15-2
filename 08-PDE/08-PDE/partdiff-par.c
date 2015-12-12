@@ -228,7 +228,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
         Matrix[g][num_rows-1][0] = 0.0;
       }
 
-      if( rank = 0 ) {
+      if( rank == 0 ) {
         Matrix[g][0][N] = 0.0;
       }
     }
