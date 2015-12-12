@@ -39,11 +39,11 @@ struct calculation_arguments
   double    h;              /* length of a space between two lines            */
   double    ***Matrix;      /* index matrix used for addressing M             */
   double    *M;             /* two matrices with real values                  */
-	int 			rank;
-	int				size;
-	int 			from;
-	int				to;
-	int 			num_rows;
+  int       rank;
+  int       size;
+  int       from;
+  int       to;
+  int       num_rows;
 };
 
 struct calculation_results
@@ -69,32 +69,28 @@ static
 void
 initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options, int rank, int size)
 {
-	int num_rows;
+  int num_rows;
 
-	arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
-	arguments->rank = rank;	//rang des prozesses
+  arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
+  arguments->rank = rank; //rang des prozesses
 
   if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
     num_rows = arguments->N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
-    arguments->from = 1;       //Matrix-zeile "von" ermitteln
-    arguments->to = 0;       //Matrix-zeile "bis" ermitteln
+    arguments->from = 1 + (rank * num_rows);       //Matrix-zeile "von" ermitteln
+    arguments->to = 0 + ((rank + 1) * num_rows);       //Matrix-zeile "bis" ermitteln
   } else {
     num_rows = arguments->N / size;      // ansonten nur seinen Hauptteil 
-    arguments->from = 1 + arguments->N % size;  //Matrix-zeile "von" ermitteln
-    arguments->to = arguments->N % size;  //Matrix-zeile "bis" ermitteln
+    arguments->from = 1 + arguments->N % size + (rank * num_rows);  //Matrix-zeile "von" ermitteln
+    arguments->to = arguments->N % size + ((rank + 1) * num_rows);  //Matrix-zeile "bis" ermitteln
   }
-
-	arguments->from += rank * num_rows;
-	arguments->to += (rank + 1) * num_rows;
-
-	arguments->size = size;
+  arguments->size = size;
 
   if(rank == size-1)            //der letzte Prozess
   {
     arguments->to = arguments->N ;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
   }
 
-	arguments->num_rows = num_rows;			// Höhe der (berechneten) Matrix des aktuellen Prozesses
+  arguments->num_rows = num_rows;     // Höhe der (berechneten) Matrix des aktuellen Prozesses
 
   arguments->num_matrices = (options->method == METH_JACOBI) ? 2 : 1;
   arguments->h = 1.0 / arguments->N;
@@ -103,7 +99,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
   results->stat_iteration = 0;
   results->stat_precision = 0;
 
-	//printf("initVariables:\n  rank: %d\n  N: %d\n  from: %d\n  to: %d\n", rank,	arguments->N, arguments->from, arguments->to);
+  printf("initVariables:\n  rank: %d\n  N: %d\n  from: %d\n  to: %d\n", rank, arguments->N, arguments->from, arguments->to);
 }
 
 /* ************************************************************************ */
@@ -154,7 +150,7 @@ allocateMatrices (struct calculation_arguments* arguments)
   uint64_t i, j;
 
   uint64_t const N = arguments->N;
-	uint64_t const num_rows = arguments->num_rows;
+  uint64_t const num_rows = arguments->num_rows;
 
   arguments->M = allocateMemory(arguments->num_matrices * (num_rows + 1) * (N + 1) * sizeof(double));
   arguments->Matrix = allocateMemory(arguments->num_matrices * sizeof(double**));
@@ -163,7 +159,7 @@ allocateMatrices (struct calculation_arguments* arguments)
   {
     arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double*));
 
-		// The height of each matrix is saved in num_rows
+    // The height of each matrix is saved in num_rows
     for (j = 0; j <= num_rows; j++)
     {
       arguments->Matrix[i][j] = arguments->M + (i * (num_rows + 1) * (N + 1)) + (j * (N + 1));
@@ -181,7 +177,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   uint64_t g, i, j;                                /*  local variables for loops   */
 
   uint64_t const N = arguments->N;
-	uint64_t const num_rows = arguments->num_rows;
+  uint64_t const num_rows = arguments->num_rows;
   double const h = arguments->h;
   double*** Matrix = arguments->Matrix;
 
@@ -207,10 +203,10 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
         Matrix[g][i][0] = 1.0 - (h * i);
         Matrix[g][i][N] = h * (i + arguments->from);
       }
-			for (i = 0; i <= N; i++) {
+      for (i = 0; i <= N; i++) {
         Matrix[g][0][i] = 1.0 - (h * (i + arguments->from));
         Matrix[g][num_rows][i] = h * (i + arguments->from);
-			}
+      }
 
       Matrix[g][num_rows][0] = 0.0;
       Matrix[g][0][N] = 0.0;
@@ -223,25 +219,25 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 static
 void
 calculate2 (
-	struct calculation_arguments const* arguments, 
-	struct calculation_results *results, 
-	struct options const* options
+  struct calculation_arguments const* arguments, 
+  struct calculation_results *results, 
+  struct options const* options
 ){
-	
+  
   int i, j;                                   /* local variables for loops  */
   int m1, m2;                                 /* used as indices for old and new matrices       */
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
-	double maxresiduum_send;
-	MPI_Request requests[2];
-	MPI_Status  stats[2];
-	int rank, from, to, size;
+  double maxresiduum_send;
+  MPI_Request requests[2];
+  MPI_Status  stats[2];
+  int rank, from, to, size;
 
-	size = arguments->size;
-	rank = arguments->rank;
-	from = arguments->from;
-	to = arguments->to;
+  size = arguments->size;
+  rank = arguments->rank;
+  from = arguments->from;
+  to = arguments->to;
 
   int const N = arguments->N;
   double const h = arguments->h;
@@ -275,7 +271,7 @@ calculate2 (
     double** Matrix_In  = arguments->Matrix[m2];
 
     maxresiduum = 0;
-		maxresiduum_send = 0;
+    maxresiduum_send = 0;
 
     /* over all rows */
     for (i = 1; i < arguments->num_rows; i++)
@@ -302,10 +298,10 @@ calculate2 (
           residuum = Matrix_In[i][j] - star;
           residuum = (residuum < 0) ? -residuum : residuum;
           maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
-					maxresiduum_send = maxresiduum;
-					//printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
-					MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
-					if(rank == 0) {
+          maxresiduum_send = maxresiduum;
+          //printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
+          MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+          if(rank == 0) {
             //printf("global maxresiduum=%f\n", maxresiduum);
             //printf("local maxresiduum=%f\n", maxresiduum_send);
           }
@@ -343,14 +339,14 @@ calculate2 (
     int successor = (rank == size - 1) ? NOBODY : rank + 1;
 
 
-		//Non-blockingly receiving first row of successor and last row of predecessor
-    if(predecessor != NOBODY)		MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)			MPI_Irecv(Matrix_In[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-		//blockingly sending first row to predecessor and last row to successor
-    if(predecessor != NOBODY) 	MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)  		MPI_Send(Matrix_Out[arguments->num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    //Non-blockingly receiving first row of successor and last row of predecessor
+    if(predecessor != NOBODY)   MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)     MPI_Irecv(Matrix_In[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    //blockingly sending first row to predecessor and last row to successor
+    if(predecessor != NOBODY)   MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)     MPI_Send(Matrix_Out[arguments->num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
 
-    if(rank != 0) 			MPI_Wait(&requests[0], &stats[0]);
+    if(rank != 0)       MPI_Wait(&requests[0], &stats[0]);
     if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
   }
 
@@ -529,27 +525,27 @@ void
 DisplayMatrix (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options)
 {
 
-		int x, y;
+    int x, y;
 
 
-		double** Matrix;
-		Matrix = arguments->Matrix[results->m];
+    double** Matrix;
+    Matrix = arguments->Matrix[results->m];
 
 
-		int const interlines = options->interlines;
+    int const interlines = options->interlines;
 
-		printf("Matrix:\n");
-			for (y = 0; y < 9; y++)
-			{
-				for (x = 0; x < 9; x++)
-				{
-					printf ("%7.4f", Matrix[y * (interlines + 1)][x * (interlines + 1)]);
-				}
+    printf("Matrix:\n");
+      for (y = 0; y < 9; y++)
+      {
+        for (x = 0; x < 9; x++)
+        {
+          printf ("%7.4f", Matrix[y * (interlines + 1)][x * (interlines + 1)]);
+        }
 
-				printf ("\n");
-			}
+        printf ("\n");
+      }
 
-		fflush (stdout);
+    fflush (stdout);
 }
 
 
@@ -567,8 +563,8 @@ static
 void
 DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_results* results, struct options* options, int rank, int size, int from, int to)
 {
-	//printf("Displaying - rank %d: from %d to %d\n", rank, from, to);
-	
+  //printf("Displaying - rank %d: from %d to %d\n", rank, from, to);
+  
   int const elements = 8 * options->interlines + 9;
 
   int x, y;
@@ -590,7 +586,7 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
   {
     int line = y * (options->interlines + 1);
 
-		//printf("DM: Doing MPI stuff... line:%d\n", line);
+    //printf("DM: Doing MPI stuff... line:%d\n", line);
     if (rank == 0)
     {
       /* check whether this line belongs to rank 0 */
@@ -611,7 +607,7 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
       }
     }
 
-		//printf("MPI stuff finished\n");
+    //printf("MPI stuff finished\n");
 
     if (rank == 0)
     {
@@ -635,7 +631,7 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
     }
   }
 
-	//printf("DisplayMatrix2 finished");
+  //printf("DisplayMatrix2 finished");
 
   fflush(stdout);
 }
@@ -703,12 +699,12 @@ main (int argc, char** argv)
     
     if(rank == 0)
     {
-			gettimeofday(&comp_time, NULL);                       
-			displayStatistics(&arguments, &results, &options);
+      gettimeofday(&comp_time, NULL);                       
+      displayStatistics(&arguments, &results, &options);
     }
 
-		DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, arguments.from, arguments.to);
-		printf("finished displaying");
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, arguments.from, arguments.to);
+    printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
 
