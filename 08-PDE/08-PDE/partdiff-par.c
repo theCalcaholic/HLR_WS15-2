@@ -70,6 +70,7 @@ void
 initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options, int rank, int size)
 {
   int num_rows;
+  int base_length;
 
   arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
   arguments->rank = rank; //rang des prozesses
@@ -81,7 +82,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
     num_rows += 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
     arguments->from = rank * base_length + (rank + 1) + (rank * 2);       //Matrix-zeile "von" ermitteln
   } else {
-    arguments->from = rank * base_length + (arguments->N % size) (rank * 2);  //Matrix-zeile "von" ermitteln
+    arguments->from = rank * base_length + (arguments->N % size) + (rank * 2);  //Matrix-zeile "von" ermitteln
   }
   arguments->to = arguments->from + num_rows - 1;       //Matrix-zeile "bis" ermitteln
   arguments->size = size;
@@ -185,6 +186,8 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   uint64_t const num_rows = arguments->num_rows;
   double const h = arguments->h;
   double*** Matrix = arguments->Matrix;
+  int rank = arguments->rank;
+  int size = arguments->size;
 
   /* initialize matrix/matrices with zeros */
   for (g = 0; g < arguments->num_matrices; g++)
@@ -370,7 +373,7 @@ calculate2 (
     {
       term_iteration--;
     }
-
+  }
 
   results->m = m2;
 }
@@ -725,7 +728,7 @@ main (int argc, char** argv)
       displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments->size, arguments.from, arguments.to);
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, arguments.from, arguments.to);
     printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
