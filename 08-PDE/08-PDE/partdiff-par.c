@@ -73,21 +73,22 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
   arguments->rank = rank; //rang des prozesses
+  base_length = (arguments->N - 1) / size;
+
+  num_rows = base_length + 2;
 
   if((unsigned int) rank < (arguments->N % size)) {        // falls rank kleiner als der Rest ist
-    num_rows = arguments->N / size + 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
-    arguments->from = 1 + (rank * num_rows);       //Matrix-zeile "von" ermitteln
-    arguments->to = 0 + ((rank + 1) * num_rows);       //Matrix-zeile "bis" ermitteln
+    num_rows += 1;      // soll er seinen Hauptteil und einen Teil des Restes aufnehmen. 
+    arguments->from = rank * base_length + (rank + 1) + (rank * 2);       //Matrix-zeile "von" ermitteln
   } else {
-    num_rows = arguments->N / size;      // ansonten nur seinen Hauptteil 
-    arguments->from = 1 + arguments->N % size + (rank * num_rows);  //Matrix-zeile "von" ermitteln
-    arguments->to = arguments->N % size + ((rank + 1) * num_rows);  //Matrix-zeile "bis" ermitteln
+    arguments->from = rank * base_length + (arguments->N % size) (rank * 2);  //Matrix-zeile "von" ermitteln
   }
+  arguments->to = arguments->from + num_rows - 1;       //Matrix-zeile "bis" ermitteln
   arguments->size = size;
 
   if(rank == size-1)            //der letzte Prozess
   {
-    arguments->to = arguments->N ;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
+    //arguments->to = arguments->N ;           //soll die letzte Zeile nicht mitnehmen, da sie nicht berechnet wird
   }
 
   arguments->num_rows = num_rows;     // Höhe der (berechneten) Matrix des aktuellen Prozesses
@@ -156,17 +157,17 @@ allocateMatrices (struct calculation_arguments* arguments)
   uint64_t const N = arguments->N;
   uint64_t const num_rows = arguments->num_rows;
 
-  arguments->M = allocateMemory(arguments->num_matrices * (num_rows + 1) * (N + 1) * sizeof(double));
+  arguments->M = allocateMemory(arguments->num_matrices * (num_rows) * (N + 1) * sizeof(double));
   arguments->Matrix = allocateMemory(arguments->num_matrices * sizeof(double**));
 
   for (i = 0; i < arguments->num_matrices; i++)
   {
-    arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double*));
+    arguments->Matrix[i] = allocateMemory((num_rows) * sizeof(double*));
 
     // The height of each matrix is saved in num_rows
-    for (j = 0; j <= num_rows; j++)
+    for (j = 0; j < num_rows; j++)
     {
-      arguments->Matrix[i][j] = arguments->M + (i * (num_rows + 1) * (N + 1)) + (j * (N + 1));
+      arguments->Matrix[i][j] = arguments->M + (i * (num_rows) * (N + 1)) + (j * (N + 1));
     }
   }
 }
@@ -188,7 +189,7 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   /* initialize matrix/matrices with zeros */
   for (g = 0; g < arguments->num_matrices; g++)
   {
-    for (i = 0; i <= num_rows; i++)
+    for (i = 0; i < num_rows; i++)
     {
       for (j = 0; j <= N; j++)
       {
@@ -202,18 +203,31 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
   {
     for (g = 0; g < arguments->num_matrices; g++)
     {
-      for (i = 0; i <= num_rows; i++)
+      for (i = 1; i < num_rows-1; i++)
       {
-        Matrix[g][i][0] = 1.0 - (h * i);
-        Matrix[g][i][N] = h * (i + arguments->from);
-      }
-      for (i = 0; i <= N; i++) {
-        Matrix[g][0][i] = 1.0 - (h * (i + arguments->from));
-        Matrix[g][num_rows][i] = h * (i + arguments->from);
+        Matrix[g][i][0] = 1.0 - (h * i + arguments->from);
+        Matrix[g][i][N] = h * i;
       }
 
-      Matrix[g][num_rows][0] = 0.0;
-      Matrix[g][0][N] = 0.0;
+      if(rank == 0) {
+        for(i = 0; i <= N; i++) {
+          Matrix[g][0][i] = 1.0 - (h * (i + arguments->from));
+        }
+      }
+
+      if(rank == size-1) {
+        for( i = 0; i <= N; i++) {
+          Matrix[g][num_rows-1][i] = 1.0 - (h * (i + arguments->from));
+        }
+      }
+
+      if(rank == size-1) {
+        Matrix[g][num_rows-1][0] = 0.0;
+      }
+
+      if( rank = 0 ) {
+        Matrix[g][0][N] = 0.0;
+      }
     }
   }
 }
@@ -227,7 +241,7 @@ calculate2 (
   struct calculation_results *results, 
   struct options const* options
 ){
-  
+
   int i, j;                                   /* local variables for loops  */
   int m1, m2;                                 /* used as indices for old and new matrices       */
   double star;                                /* four times center value minus 4 neigh.b values */
@@ -244,6 +258,7 @@ calculate2 (
   to = arguments->to;
 
   int const N = arguments->N;
+  int const num_rows = arguments->num_rows;
   double const h = arguments->h;
 
   double pih = 0.0;
@@ -277,14 +292,32 @@ calculate2 (
     maxresiduum = 0;
     maxresiduum_send = 0;
 
+
+    // Send and recieve first and last matrix rows
+    int predecessor = (rank == 0) ? NOBODY : rank-1;
+    int successor = (rank == size - 1) ? NOBODY : rank + 1;
+
+
+    //Non-blockingly receiving first row of successor and last row of predecessor
+    if(predecessor != NOBODY)   MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
+    if(successor != NOBODY)     MPI_Irecv(Matrix_In[num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
+    //blockingly sending first row to predecessor and last row to successor
+    if(predecessor != NOBODY)   MPI_Send(Matrix_In[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+    if(successor != NOBODY)     MPI_Send(Matrix_In[num_rows - 2], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
+
+    if(rank != 0)       MPI_Wait(&requests[0], &stats[0]);
+    if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
     /* over all rows */
-    for (i = 1; i < arguments->num_rows; i++)
+    for (i = 1; i < num_rows - 1; i++)
     {
       double fpisin_i = 0.0;
 
       if (options->inf_func == FUNC_FPISIN)
       {
-        fpisin_i = fpisin * sin(pih * ((double)i + arguments->from));
+        fpisin_i = fpisin * sin(pih * (double)i);
       }
 
       /* over all columns */
@@ -338,21 +371,6 @@ calculate2 (
       term_iteration--;
     }
 
-    // Send and recieve first and last matrix rows
-    int predecessor = (rank == 0) ? NOBODY : rank-1;
-    int successor = (rank == size - 1) ? NOBODY : rank + 1;
-
-
-    //Non-blockingly receiving first row of successor and last row of predecessor
-    if(predecessor != NOBODY)   MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[0]);
-    if(successor != NOBODY)     MPI_Irecv(Matrix_In[arguments->num_rows], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &requests[1]);
-    //blockingly sending first row to predecessor and last row to successor
-    if(predecessor != NOBODY)   MPI_Send(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-    if(successor != NOBODY)     MPI_Send(Matrix_Out[arguments->num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD);
-
-    if(rank != 0)       MPI_Wait(&requests[0], &stats[0]);
-    if(rank != size-1)  MPI_Wait(&requests[1], &stats[1]);
-  }
 
   results->m = m2;
 }
@@ -707,7 +725,7 @@ main (int argc, char** argv)
       displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.size, arguments.from, arguments.to);
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments->size, arguments.from, arguments.to);
     printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
