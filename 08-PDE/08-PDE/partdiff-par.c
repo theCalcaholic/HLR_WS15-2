@@ -70,7 +70,6 @@ void
 initVariables (struct calculation_arguments* arguments, struct calculation_results* results, struct options const* options, int rank, int size)
 {
   int num_rows;
-  int base_length;
 
   arguments->N = (options->interlines * 8) + 9 - 1; //breite der (berechneten) matrix 
   arguments->rank = rank; //rang des prozesses
@@ -78,7 +77,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   arguments->from += rank * num_rows;
 
-  if( rank < arguments->N % size ) {
+  if( (unsigned int)rank < arguments->N % size ) {
     arguments->from += rank;
     arguments->to = arguments->from + num_rows;
   } else {
@@ -99,7 +98,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
     num_rows++;
   }
 
-  if( rank < arguments->N % size ) {
+  if( (unsigned int)rank < arguments->N % size ) {
     num_rows++;
   }
 
@@ -114,7 +113,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   int i;
   for(i = 0; i < arguments->size; i++) {
-    if(rank == i) printf("initVariables:\n  rank: %d\n  N: %d\n  num_rows: %d\n  from: %d\n  to: %d\n", rank, arguments->N, arguments->num_rows, arguments->from, arguments->to);
+    if(rank == i) printf("initVariables:\n  rank: %d\n  N: %d\n  num_rows: %d\n  from: %d\n  to: %d\n", rank, arguments->N, (int)arguments->num_rows, arguments->from, arguments->to);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 }
@@ -259,8 +258,7 @@ calculate2 (
   double maxresiduum_send;
   MPI_Request predecessor_requests[2];
   MPI_Request successor_requests[2];
-  MPI_Status predecessor_stats[2];
-  MPI_Status successor_stats[2]
+  MPI_Status stats[2];
   int rank, from, to, size;
 
   size = arguments->size;
@@ -359,9 +357,9 @@ calculate2 (
     if(successor != NOBODY)     MPI_Irecv(Matrix_In[num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[1]);
 
     if(predecessor != NOBODY) 
-      MPI_Waitall(2, &predecessor_requests, &predecessor_stats);
+      MPI_Waitall(2, predecessor_requests, stats);
     if(successor != NOBODY)
-      MPI_Waitall(2, &successor_requests, &successor_stats);
+      MPI_Waitall(2, successor_requests, stats);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
