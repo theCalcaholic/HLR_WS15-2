@@ -101,7 +101,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   int i;
   for(i = 0; i < arguments->size; i++) {
-    if(rank == i) printf("initVariables:\n  rank: %d\n  N: %d\n  num_rows: %d\n  from: %d\n  to: %d\n", rank, arguments->N, arguments->from, arguments->to);
+    if(rank == i) printf("initVariables:\n  rank: %d\n  N: %d\n  num_rows: %d\n  from: %d\n  to: %d\n", rank, arguments->N, arguments->num_rows, arguments->from, arguments->to);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 }
