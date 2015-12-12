@@ -95,7 +95,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 
   if(rank < size-1)            //der letzte Prozess
   {
-    end++;
+    arguments->to++;
     num_rows++;
   }
 
