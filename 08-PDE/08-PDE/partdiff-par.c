@@ -740,7 +740,7 @@ main (int argc, char** argv)
       displayStatistics(&arguments, &results, &options);
     }
 
-    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.num_rows, arguments.from, arguments.to);
+    DisplayMatrix2 (&arguments,&results,&options, arguments.rank, arguments.num_rows, arguments.from + 1, arguments.to - 1);
     printf("finished displaying");
     freeMatrices(&arguments);         //TODO hier entsprechend freeden.*/
   }
