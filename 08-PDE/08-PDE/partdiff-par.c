@@ -256,7 +256,6 @@ calculate2 (
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
   double maxresiduum;                         /* maximum residuum value of a slave in iteration */
-  double maxresiduum_send;
   MPI_Request predecessor_requests[2];
   MPI_Request successor_requests[2];
   MPI_Status stats[2];
@@ -331,12 +330,7 @@ calculate2 (
           residuum = Matrix_In[i][j] - star;
           residuum = (residuum < 0) ? -residuum : residuum;
           maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
-          //printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
-          //MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
-          /*if(rank == 0) {
-            printf("global maxresiduum=%f\n", maxresiduum);
-            printf("local maxresiduum=%f\n", maxresiduum_send);
-          }*/
+          //if(i % 120 == 0) printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
         }
 
         Matrix_Out[i][j] = star;
@@ -358,10 +352,6 @@ calculate2 (
     if(successor != NOBODY)
       MPI_Waitall(2, successor_requests, stats);
 
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    results->stat_iteration++;
-    results->stat_precision = maxresiduum;
 
 
 
@@ -373,18 +363,26 @@ calculate2 (
     /* check for stopping calculation, depending on termination method */
     if (options->termination == TERM_PREC)
     {
+			// should get the global maxresiduum -  no idea why it doesn't work
+			MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
       if (maxresiduum < options->term_precision)
       {
         term_iteration = 0;
       }
+			//if(rank == 0) printf("global maxresiduum: %d\n", maxresiduum);
     }
     else if (options->termination == TERM_ITER)
     {
       term_iteration--;
     }
+
+    results->stat_iteration++;
+    results->stat_precision = maxresiduum;
   }
 
   results->m = m2;
+	MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+	results->stat_precision = maxresiduum;
 }
 
 
