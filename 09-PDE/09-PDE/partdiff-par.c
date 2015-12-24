@@ -37,6 +37,11 @@ struct calculation_arguments
 	double    h;              /* length of a space between two lines            */
 	double    ***Matrix;      /* index matrix used for addressing M             */
 	double    *M;             /* two matrices with real values                  */
+	int rank;			//Nummer des Prozesses
+	int size;			//Anzahl der Prozesse
+	int from;			//Kümmmert sich ab dieser Zeile
+	int to;				//bis zur dieser Zeile
+	int num_rows			//Anzahl der Zeilen
 };
 
 struct calculation_results
@@ -466,14 +471,11 @@ main (int argc, char** argv)
 	struct calculation_arguments arguments;
 	struct calculation_results results;
 
-  int rank;             // Nummer des P
-  int size;             // Anzahl der P
-
   MPI_Init(&argc, &argv);                         // MPI initialisieren
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);           // Nummer des P holen 
-  MPI_Comm_size(MPI_COMM_WORLD, &size);           // Anzahl der P holen
+  MPI_Comm_rank(MPI_COMM_WORLD, &arguments.rank);           // Nummer des P holen 
+  MPI_Comm_size(MPI_COMM_WORLD, &arguments.size);           // Anzahl der P holen
 
-  if(rank == 0)
+  if(&argumens.rank == 0)
   {
     /* get parameters */
     AskParams(&options, argc, argv);              
@@ -490,7 +492,7 @@ main (int argc, char** argv)
   
   initVariables(&arguments, &results, &options);           
 
-  if ((options.method == METH_JACOBI) && (rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
+  if ((options.method == METH_JACOBI) && (arguments.rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
   {
 
     allocateMatrices(&arguments);             /*  get and initialize variables and matrices  */
