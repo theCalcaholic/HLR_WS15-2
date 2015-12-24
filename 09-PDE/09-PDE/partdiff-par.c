@@ -41,7 +41,7 @@ struct calculation_arguments
 	int size;			//Anzahl der Prozesse
 	int from;			//Kümmmert sich ab dieser Zeile
 	int to;				//bis zur dieser Zeile
-	int num_rows			//Anzahl der Zeilen
+	int num_rows;			//Anzahl der Zeilen
 };
 
 struct calculation_results
@@ -74,6 +74,42 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
 	results->m = 0;
 	results->stat_iteration = 0;
 	results->stat_precision = 0;
+}
+
+static
+void
+initMpiVariables (struct calculation_arguments* arguments)
+{
+	//Diese MPI-Variablen wurden schon definiert
+	int rank = arguments->rank;
+	int size = arguments->size;
+	int calculate_lines = arguments->N - 1;
+
+	//Diese sollten nun initialisiert werden
+	int* from = &(arguments->from);
+	int* to = &(arguments->to);
+	int* num_rows = &(arguments->num_rows);
+	
+	int own_calculate_lines = 0;
+
+	if(rank < calculate_lines % size)
+	{
+		own_calculate_lines = calculate_lines / size + 1;
+		*from = rank * (own_calculate_lines - 1) + rank;
+		*to = *from + (own_calculate_lines -1) ;
+		*num_rows = own_calculate_lines + 2;			//2 halo lines
+	}
+
+	else
+	{
+		own_calculate_lines = calculate_lines / size;
+		*from = rank * (own_calculate_lines - 1) + (calculate_lines % size) + rank;
+		*to = (*from) + (own_calculate_lines - 1);
+		*num_rows = own_calculate_lines + 2;
+	}
+		(*from)++; // soll von 1 starten
+		(*to)++;
+		
 }
 
 /* ************************************************************************ */
@@ -138,6 +174,7 @@ allocateMatrices (struct calculation_arguments* arguments)
 		}
 	}
 }
+
 
 /* ************************************************************************ */
 /* initMatrices: Initialize matrix/matrices and some global variables       */
@@ -475,7 +512,7 @@ main (int argc, char** argv)
   MPI_Comm_rank(MPI_COMM_WORLD, &arguments.rank);           // Nummer des P holen 
   MPI_Comm_size(MPI_COMM_WORLD, &arguments.size);           // Anzahl der P holen
 
-  if(&argumens.rank == 0)
+  if(arguments.rank == 0)
   {
     /* get parameters */
     AskParams(&options, argc, argv);              
@@ -506,6 +543,17 @@ main (int argc, char** argv)
     DisplayMatrix(&arguments, &results, &options);
 
     freeMatrices(&arguments);                           /*  free memory     */
+  }
+
+  if ((options.method == METH_GAUSS_SEIDEL))
+  {
+
+  initMpiVariables (&arguments);
+  //printf("\n rank %d calculate from %d to %d and N is %d \n",
+  //arguments.rank,
+  //arguments.from,
+  //arguments.to,
+  //arguments.N);						//überprüft, ob from und to wirklich korrekt sind
   }
 
   MPI_Finalize();             //beendet MPI
