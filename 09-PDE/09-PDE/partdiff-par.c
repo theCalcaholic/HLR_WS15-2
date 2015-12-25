@@ -19,6 +19,9 @@
 /* ************************************************************************ */
 #define _POSIX_C_SOURCE 200809L
 
+//Falls Prozess keinen Vorgänger/Nachfolger hat
+#define NOBODY -2831
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -236,13 +239,12 @@ initMpiMatrices (struct calculation_arguments* arguments, struct options const* 
 	int from = arguments->from;
 	int size = arguments->size;
 	int rank = arguments->rank;
-	int to = arguments->to;
 	int num_rows = arguments->num_rows;
 
 	/* initialize matrix/matrices with zeros */
 	for (g = 0; g < arguments->num_matrices; g++)
 	{
-		for (i = 0; (int) i < num_rows; i++)
+		for (i = 0; (int) i < num_rows; i++) //Es git Num_rows Zeilen. 0 und num_rows -1 sind die halo lines.
 		{
 			for (j = 0; j <= N; j++)
 			{
@@ -255,10 +257,10 @@ initMpiMatrices (struct calculation_arguments* arguments, struct options const* 
 	{
 		for (g = 0; g < arguments->num_matrices; g++)
 		{
-			for (i = 1; i < num_rows-1; i++)			//initialisiert nur die Zeilen, die berechnet werden
+			for (i = 1;(int) i < num_rows-1; i++)			//initialisiert alle Zeilen außer die halo lines.
 			{
-				Matrix[g][i][0] = 1.0 - (h * (i + from -1)); 	//für alle
-				Matrix[g][i][N] = h * (i + from - 1);		//für alle
+				Matrix[g][i][0] = 1.0 - (h * (i + from -1)); 	//0. Spalte
+				Matrix[g][i][N] = h * (i + from - 1);		//letzte Spalte
 			}
 			
 			if(rank == 0)
@@ -266,23 +268,82 @@ initMpiMatrices (struct calculation_arguments* arguments, struct options const* 
 
 				for(i = 0; i <= N; i++)
 				{
-					Matrix[g][0][i] = 1.0 - (h * i);		//für den ersten Prozess
+					Matrix[g][0][i] = 1.0 - (h * i);	//0. Zeile
 				}
 
-				Matrix[g][0][N] = 0.0;				//für den ersten P
+				Matrix[g][0][N] = 0.0;				//rechte Ecke korrigieren
 			}
 
 			if(rank == size - 1)
 			{
 				for(i = 0; i <= N; i ++)
 				{
-					Matrix[g][num_rows-1][i] = h * i;			//für den letzten Prozess interessant
+					Matrix[g][num_rows-1][i] = h * i;			//letzte Zeile
 				}
-				Matrix[g][num_rows-1][0] = 0.0;				//für den letzten P
+				Matrix[g][num_rows-1][0] = 0.0;			//linke Ecke korrigieren
 			}
 		}
 	}
+	
+	//Hier werden die benötigten halo lines empfangen/gesendet.
+	int predessor = (rank == 0)? NOBODY : rank - 1;
+	int successor = (rank == size-1)? NOBODY : rank + 1;
+
+	
+	for (g = 0; g < arguments->num_matrices; g++)
+	{
+
+		//Vorletzte Zeile wird an den nächsten Prozess an 0. Zeile (erste Zeile) eingefügt
+		if(successor != NOBODY)
+		{
+			MPI_Send(
+				Matrix[g][num_rows-2],	//num_rows-1 ist ja seine eigene halo line!!
+				N+1,
+				MPI_DOUBLE,
+				successor,
+				g + 3,
+				MPI_COMM_WORLD);
+		}
+	
+		if(predessor != NOBODY)
+		{
+			MPI_Recv(
+				Matrix[g][0],
+				N+1,
+				MPI_DOUBLE,
+				predessor,
+				g + 3,
+				MPI_COMM_WORLD,
+				NULL);
+		}
+
+		//1. Zeile (bzw. die zweite Zeile) wird an den vorherigen Prozess an der letzte Zeile eingefügt
+		
+		if(predessor != NOBODY)
+		{
+			MPI_Send(
+				Matrix[g][1],	//num_rows-1 ist ja seine eigene halo line!!
+				N+1,
+				MPI_DOUBLE,
+				predessor,
+				2 * g + 4,
+				MPI_COMM_WORLD);
+		}
+	
+		if(successor != NOBODY)
+		{
+			MPI_Recv(
+				Matrix[g][num_rows-1],
+				N+1,
+				MPI_DOUBLE,
+				successor,
+				2 * g + 4,
+				MPI_COMM_WORLD,
+				NULL);
+		}
+	}
 }
+
 
 /* ************************************************************************ */
 /* calculate: solves the equation                                           */
