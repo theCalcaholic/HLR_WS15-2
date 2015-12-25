@@ -549,11 +549,12 @@ main (int argc, char** argv)
   {
 
   initMpiVariables (&arguments);
-  //printf("\n rank %d calculate from %d to %d and N is %d \n",
-  //arguments.rank,
-  //arguments.from,
-  //arguments.to,
-  //arguments.N);						//überprüft, ob from und to wirklich korrekt sind
+ // printf("\n rank %d calculate from %d to %d, N is %d and has %d lines \n",
+ // arguments.rank,
+ // arguments.from,
+ // arguments.to,
+ // arguments.N,
+ // arguments.num_rows);						//überprüft, ob from, to und num_rows wirklich korrekt sind
   }
 
   MPI_Finalize();             //beendet MPI
