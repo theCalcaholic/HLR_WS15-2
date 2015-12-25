@@ -535,6 +535,17 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 
 				Matrix_Out[i][j] = star;
 			}
+			
+			if((i == 1) && (predessor != NOBODY) && ((term_iteration - 1) > 0) )
+			{
+				MPI_Send(
+					Matrix_Out[1],	//Matrix[g][0] ist ja seine eigene halo line!!
+					N+1,
+					MPI_DOUBLE,
+					predessor,
+					21,
+					MPI_COMM_WORLD);
+			}
 		}
 
 		results->stat_iteration++;
@@ -568,6 +579,18 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 				successor,
 				22,
 				MPI_COMM_WORLD);
+			
+			if(term_iteration > 0)
+			{
+				MPI_Recv(
+					Matrix_In[num_rows-1],
+					N+1,
+					MPI_DOUBLE,
+					successor,
+					21,
+					MPI_COMM_WORLD,
+					NULL);
+			}
 		}
 	}
 	results->stat_precision = 0; //TODO: DAS MUSS nach Fertigstellung der Iterationen gelöscht werden!!!!!
