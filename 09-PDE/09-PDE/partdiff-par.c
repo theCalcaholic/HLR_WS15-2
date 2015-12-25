@@ -229,12 +229,14 @@ initMpiMatrices (struct calculation_arguments* arguments, struct options const* 
 	uint64_t g, i, j;                                /*  local variables for loops   */
 
 	uint64_t const N = arguments->N;
-	//double const h = arguments->h;
+	double const h = arguments->h;
 	double*** Matrix = arguments->Matrix;
 
 	//Die speziellen mpi-Variablen.
-//	int from = arguments->from;
-//	int to = arguments->to;
+	int from = arguments->from;
+	int size = arguments->size;
+	int rank = arguments->rank;
+	int to = arguments->to;
 	int num_rows = arguments->num_rows;
 
 	/* initialize matrix/matrices with zeros */
@@ -245,6 +247,38 @@ initMpiMatrices (struct calculation_arguments* arguments, struct options const* 
 			for (j = 0; j <= N; j++)
 			{
 				Matrix[g][i][j] = 0.0;
+			}
+		}
+	}
+
+	if (options->inf_func == FUNC_F0)
+	{
+		for (g = 0; g < arguments->num_matrices; g++)
+		{
+			for (i = 1; i < num_rows-1; i++)			//initialisiert nur die Zeilen, die berechnet werden
+			{
+				Matrix[g][i][0] = 1.0 - (h * (i + from -1)); 	//für alle
+				Matrix[g][i][N] = h * (i + from - 1);		//für alle
+			}
+			
+			if(rank == 0)
+			{
+
+				for(i = 0; i <= N; i++)
+				{
+					Matrix[g][0][i] = 1.0 - (h * i);		//für den ersten Prozess
+				}
+
+				Matrix[g][0][N] = 0.0;				//für den ersten P
+			}
+
+			if(rank == size - 1)
+			{
+				for(i = 0; i <= N; i ++)
+				{
+					Matrix[g][num_rows-1][i] = h * i;			//für den letzten Prozess interessant
+				}
+				Matrix[g][num_rows-1][0] = 0.0;				//für den letzten P
 			}
 		}
 	}
