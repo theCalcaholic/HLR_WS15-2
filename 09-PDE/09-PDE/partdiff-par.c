@@ -458,8 +458,9 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 	int i, j;                                   /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
 	double star;                                /* four times center value minus 4 neigh.b values */
-//	double residuum;                            /* residuum of current iteration                  */
-//	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
+	double residuum;                            /* residuum of current iteration                  */
+	double localmaxresiduum;                         /* maximum residuum value of a slave in iteration */
+	double globalmaxresiduum;
 
 	int const N = arguments->N;
 	double const h = arguments->h;
@@ -479,6 +480,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 
 	m1 = 0;
 	m2 = 0;
+
+	globalmaxresiduum = 0;
 
 	if (options->inf_func == FUNC_FPISIN)
 	{
@@ -504,7 +507,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 				NULL);
 		}
 
-//		maxresiduum = 0;
+		localmaxresiduum = 0;
 
 		/* over all rows */
 		for (i = 1; i < num_rows - 1; i++)
@@ -526,12 +529,13 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 					star += fpisin_i * sin(pih * (double)j);
 				}
 
-//				if (options->termination == TERM_PREC || term_iteration == 1)
-//				{
-//					residuum = Matrix_In[i][j] - star;
-//					residuum = (residuum < 0) ? -residuum : residuum;
-//					maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
-//				}
+				if (options->termination == TERM_PREC || term_iteration == 1)
+				{
+					residuum = Matrix_In[i][j] - star;
+					residuum = (residuum < 0) ? -residuum : residuum;
+					localmaxresiduum = (residuum < localmaxresiduum) ? localmaxresiduum : residuum;
+				}
+
 
 				Matrix_Out[i][j] = star;
 			}
@@ -549,7 +553,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		}
 
 		results->stat_iteration++;
-//		results->stat_precision = maxresiduum;
+		results->stat_precision = localmaxresiduum;
 
 		/* exchange m1 and m2 */
 		i = m1;
@@ -593,7 +597,19 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 			}
 		}
 	}
-	results->stat_precision = 0; //TODO: DAS MUSS nach Fertigstellung der Iterationen gelöscht werden!!!!!
+
+	if(term_iteration < 1)
+	{
+		MPI_Allreduce(  &localmaxresiduum,
+				&globalmaxresiduum,
+				1,
+				MPI_DOUBLE,
+				MPI_MAX,
+				MPI_COMM_WORLD);
+	
+		results->stat_precision = globalmaxresiduum;
+	}
+
 	results->m = m2;
 }
 
@@ -786,6 +802,7 @@ main (int argc, char** argv)
   MPI_Init(&argc, &argv);                         // MPI initialisieren
   MPI_Comm_rank(MPI_COMM_WORLD, &arguments.rank);           // Nummer des P holen 
   MPI_Comm_size(MPI_COMM_WORLD, &arguments.size);           // Anzahl der P holen
+  int rank = arguments.rank;
 
   if(arguments.rank == 0)
   {
@@ -830,10 +847,18 @@ main (int argc, char** argv)
  // arguments.to,
  // arguments.N,
  // arguments.num_rows);						//überprüft, ob from, to und num_rows wirklich korrekt sind
+  
   allocateMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
   initMpiMatrices (&arguments,&options);
+  if(rank == 0) gettimeofday(&start_time, NULL);                    /*  start timer         */
+
   calculate_gauss (&arguments,&results,&options);
+
+  if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
+  if(rank == 0) displayStatistics(&arguments, &results, &options);
+
   DisplayMatrix2 (&arguments,&results,&options,arguments.rank,arguments.size,arguments.from,arguments.to);
+  freeMatrices(&arguments);
   }
 
   MPI_Finalize();             //beendet MPI
