@@ -458,8 +458,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 	int i, j;                                   /* local variables for loops  */
 	int m1, m2;                                 /* used as indices for old and new matrices       */
 	double star;                                /* four times center value minus 4 neigh.b values */
-	double residuum;                            /* residuum of current iteration                  */
-	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
+//	double residuum;                            /* residuum of current iteration                  */
+//	double maxresiduum;                         /* maximum residuum value of a slave in iteration */
 
 	int const N = arguments->N;
 	double const h = arguments->h;
@@ -472,6 +472,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 	int rank = arguments->rank;
 	int from = arguments->from;
 	int num_rows = arguments->num_rows;
+	int predessor = (rank == 0)? NOBODY : rank - 1;
+	int successor = (rank == size-1)? NOBODY : rank + 1;
 
 	int term_iteration = options->term_iteration;
 
@@ -486,19 +488,32 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 
 	while (term_iteration > 0)
 	{
+
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
 
-		maxresiduum = 0;
+		if(predessor != NOBODY)
+		{
+			MPI_Recv(
+				Matrix_In[0],
+				N+1,
+				MPI_DOUBLE,
+				predessor,
+				22,
+				MPI_COMM_WORLD,
+				NULL);
+		}
+
+//		maxresiduum = 0;
 
 		/* over all rows */
-		for (i = 1; i < N; i++)
+		for (i = 1; i < num_rows - 1; i++)
 		{
 			double fpisin_i = 0.0;
 
 			if (options->inf_func == FUNC_FPISIN)
 			{
-				fpisin_i = fpisin * sin(pih * (double)i);
+				fpisin_i = fpisin * sin(pih * (double) (i + (from -1)));
 			}
 
 			/* over all columns */
@@ -511,19 +526,19 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 					star += fpisin_i * sin(pih * (double)j);
 				}
 
-				if (options->termination == TERM_PREC || term_iteration == 1)
-				{
-					residuum = Matrix_In[i][j] - star;
-					residuum = (residuum < 0) ? -residuum : residuum;
-					maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
-				}
+//				if (options->termination == TERM_PREC || term_iteration == 1)
+//				{
+//					residuum = Matrix_In[i][j] - star;
+//					residuum = (residuum < 0) ? -residuum : residuum;
+//					maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
+//				}
 
 				Matrix_Out[i][j] = star;
 			}
 		}
 
 		results->stat_iteration++;
-		results->stat_precision = maxresiduum;
+//		results->stat_precision = maxresiduum;
 
 		/* exchange m1 and m2 */
 		i = m1;
@@ -531,19 +546,31 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		m2 = i;
 
 		/* check for stopping calculation, depending on termination method */
-		if (options->termination == TERM_PREC)
-		{
-			if (maxresiduum < options->term_precision)
-			{
-				term_iteration = 0;
-			}
-		}
-		else if (options->termination == TERM_ITER)
+//		if (options->termination == TERM_PREC)
+//		{
+//			if (maxresiduum < options->term_precision)
+//			{
+//				term_iteration = 0;
+//			}
+//		}
+//		else
+	       	if (options->termination == TERM_ITER)
 		{
 			term_iteration--;
 		}
-	}
 
+		if(successor != NOBODY)
+		{
+			MPI_Send(
+				Matrix_Out[num_rows-2],	//num_rows-1 ist ja seine eigene halo line!!
+				N+1,
+				MPI_DOUBLE,
+				successor,
+				22,
+				MPI_COMM_WORLD);
+		}
+	}
+	results->stat_precision = 0; //TODO: DAS MUSS nach Fertigstellung der Iterationen gelöscht werden!!!!!
 	results->m = m2;
 }
 
@@ -782,6 +809,7 @@ main (int argc, char** argv)
  // arguments.num_rows);						//überprüft, ob from, to und num_rows wirklich korrekt sind
   allocateMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
   initMpiMatrices (&arguments,&options);
+  calculate_gauss (&arguments,&results,&options);
   DisplayMatrix2 (&arguments,&results,&options,arguments.rank,arguments.size,arguments.from,arguments.to);
   }
 
