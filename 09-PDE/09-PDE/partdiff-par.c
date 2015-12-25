@@ -176,6 +176,8 @@ allocateMatrices (struct calculation_arguments* arguments)
 }
 
 
+
+
 /* ************************************************************************ */
 /* initMatrices: Initialize matrix/matrices and some global variables       */
 /* ************************************************************************ */
@@ -216,6 +218,34 @@ initMatrices (struct calculation_arguments* arguments, struct options const* opt
 
 			Matrix[g][N][0] = 0.0;
 			Matrix[g][0][N] = 0.0;
+		}
+	}
+}
+
+static
+void
+initMpiMatrices (struct calculation_arguments* arguments, struct options const* options)
+{
+	uint64_t g, i, j;                                /*  local variables for loops   */
+
+	uint64_t const N = arguments->N;
+	//double const h = arguments->h;
+	double*** Matrix = arguments->Matrix;
+
+	//Die speziellen mpi-Variablen.
+//	int from = arguments->from;
+//	int to = arguments->to;
+	int num_rows = arguments->num_rows;
+
+	/* initialize matrix/matrices with zeros */
+	for (g = 0; g < arguments->num_matrices; g++)
+	{
+		for (i = 0; (int) i < num_rows; i++)
+		{
+			for (j = 0; j <= N; j++)
+			{
+				Matrix[g][i][j] = 0.0;
+			}
 		}
 	}
 }
@@ -555,6 +585,9 @@ main (int argc, char** argv)
  // arguments.to,
  // arguments.N,
  // arguments.num_rows);						//überprüft, ob from, to und num_rows wirklich korrekt sind
+  allocateMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
+  initMpiMatrices (&arguments,&options);
+  DisplayMatrix2 (&arguments,&results,&options,arguments.rank,arguments.size,arguments.from,arguments.to);
   }
 
   MPI_Finalize();             //beendet MPI
