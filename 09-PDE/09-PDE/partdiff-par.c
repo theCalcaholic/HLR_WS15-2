@@ -574,9 +574,10 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 			//Prozesse, um sich gegenseitig mitzuteilen
 			//ob die term_precision erreicht wurde
 			//(Sind natürlich in unterschiedlichen Iterationen)
+			//Abstände des Treffens sind size Iterationen
 
-			if((results->stat_iteration % size) == (size - rank) ||
-			   ((results->stat_iteration % size) == 0 && rank == 0))
+			if(((int) results->stat_iteration % size) == (size - rank) ||
+			   (((int) results->stat_iteration % size) == 0 && rank == 0))
 			{
 				int local_kind_of_termination = kind_of_termination;
 				if (localmaxresiduum < options->term_precision)
