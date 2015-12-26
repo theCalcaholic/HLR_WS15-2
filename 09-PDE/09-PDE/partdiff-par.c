@@ -477,6 +477,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 	int successor = (rank == size-1)? NOBODY : rank + 1;
 
 	int term_iteration = options->term_iteration;
+	int kind_of_termination = options->termination;
 
 	m1 = 0;
 	m2 = 0;
@@ -495,6 +496,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
 
+		//Hier warten alle auf die erste halo line (außer P0) des vorherigen Prozesses
 		if(predessor != NOBODY)
 		{
 			MPI_Recv(
@@ -539,7 +541,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 
 				Matrix_Out[i][j] = star;
 			}
-			
+			//Falls die erste berechnete Line geschickt wird, kann sie als halo line für den vorherigen
+			//Prozess gesendet werden
 			if((i == 1) && (predessor != NOBODY) && ((term_iteration - 1) > 0) )
 			{
 				MPI_Send(
@@ -560,22 +563,50 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		m1 = m2;
 		m2 = i;
 
-		/* check for stopping calculation, depending on termination method */
-//		if (options->termination == TERM_PREC)
-//		{
-//			if (maxresiduum < options->term_precision)
-//			{
-//				term_iteration = 0;
-//			}
-//		}
-//		else
-	       	if (options->termination == TERM_ITER)
+	       	if (kind_of_termination == TERM_ITER)
 		{
 			term_iteration--;
 		}
+		
+		if (kind_of_termination == TERM_PREC)
+		{
+			//Hier treffen sich alle parallellaufende
+			//Prozesse, um sich gegenseitig mitzuteilen
+			//ob die term_precision erreicht wurde
+			//(Sind natürlich in unterschiedlichen Iterationen)
+
+			if((results->stat_iteration % size) == (size - rank) ||
+			   ((results->stat_iteration % size) == 0 && rank == 0))
+			{
+				int local_kind_of_termination = kind_of_termination;
+				if (localmaxresiduum < options->term_precision)
+				{
+					local_kind_of_termination = TERM_ITER;
+				}
+				//Falls einer es schafft, so wechselt man
+				//in den Iterationsabbruch
+				MPI_Allreduce(  &local_kind_of_termination,
+						&kind_of_termination,
+						1,
+						MPI_INT,
+						MPI_MIN,
+						MPI_COMM_WORLD);
+
+				//und bringt alle Prozesse auf die Iteration
+				//von P0
+				if(kind_of_termination == TERM_ITER)
+				{
+					term_iteration = rank;
+				}
+			}
+
+		}
+
 
 		if(successor != NOBODY)
 		{
+			//Hier wird die letzte line für die erste halo line an den nächsten
+			//Prozess gesendet
 			MPI_Send(
 				Matrix_Out[num_rows-2],	//num_rows-1 ist ja seine eigene halo line!!
 				N+1,
@@ -584,6 +615,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 				22,
 				MPI_COMM_WORLD);
 			
+			//Die zweite halo line wird benötigt, wenn man eine weitere Iteration
+			//durchgehen muss
 			if(term_iteration > 0)
 			{
 				MPI_Recv(
@@ -598,6 +631,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		}
 	}
 
+	//Hier wird das globale maxresiduum ermittelt
 	if(term_iteration < 1)
 	{
 		MPI_Allreduce(  &localmaxresiduum,
