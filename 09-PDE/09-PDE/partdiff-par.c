@@ -180,6 +180,28 @@ allocateMatrices (struct calculation_arguments* arguments)
 
 
 
+static
+void
+allocateMpiMatrices (struct calculation_arguments* arguments)
+{
+	uint64_t i, j;
+
+	uint64_t const N = arguments->N;
+	int num_rows = arguments->num_rows;
+
+	arguments->M = allocateMemory(arguments->num_matrices * (N + 1) * num_rows * sizeof(double));
+	arguments->Matrix = allocateMemory(arguments->num_matrices * sizeof(double**));
+
+	for (i = 0; i < arguments->num_matrices; i++)
+	{
+		arguments->Matrix[i] = allocateMemory((N + 1) * sizeof(double*));
+
+		for (j = 0; j <= N; j++)
+		{
+			arguments->Matrix[i][j] = arguments->M + (i * num_rows * (N + 1)) + (j * (N + 1));
+		}
+	}
+}
 
 /* ************************************************************************ */
 /* initMatrices: Initialize matrix/matrices and some global variables       */
@@ -876,14 +898,7 @@ main (int argc, char** argv)
   {
 
   initMpiVariables (&arguments);
- // printf("\n rank %d calculate from %d to %d, N is %d and has %d lines \n",
- // arguments.rank,
- // arguments.from,
- // arguments.to,
- // arguments.N,
- // arguments.num_rows);						//überprüft, ob from, to und num_rows wirklich korrekt sind
-  
-  allocateMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
+  allocateMpiMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
   initMpiMatrices (&arguments,&options);
   if(rank == 0) gettimeofday(&start_time, NULL);                    /*  start timer         */
 
