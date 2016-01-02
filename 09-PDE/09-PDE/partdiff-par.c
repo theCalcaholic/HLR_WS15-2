@@ -78,6 +78,7 @@ initVariables (struct calculation_arguments* arguments, struct calculation_resul
   results->m = 0;
   results->stat_iteration = 0;
   results->stat_precision = 0;
+  arguments->term_iteration = options->term_iteration;
 
   if( options->termination == TERM_PREC ) {
     arguments->term_iteration = 1;
