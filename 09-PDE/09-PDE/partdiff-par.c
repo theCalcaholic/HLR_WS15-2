@@ -487,8 +487,9 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
   int m1, m2;                                 /* used as indices for old and new matrices       */
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
-  double localmaxresiduum;                         /* maximum residuum value of a slave in iteration */
+  double localmaxresiduum;                    /* maximum residuum value of a slave in iteration */
   double globalmaxresiduum;
+  bool precise_enough = false;
 
   int const N = arguments->N;
   double const h = arguments->h;
@@ -509,6 +510,12 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
   MPI_Request requests[2];
 
   int term_iteration = arguments->term_iteration;
+
+  if(options->termination == TERM_PREC) {
+    term_iteration = rank + 1;
+  } else {
+    term_iteration = options->term_iteration;
+  }
   int kind_of_termination = options->termination;
 
   m1 = 0;
@@ -639,7 +646,11 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
     m1 = m2;
     m2 = i;
 
-    term_iteration--;
+    precise_enough = results->stat_precision > options->term_precision;
+
+    if( options->termination == TERM_ITER || precise_enough ) {
+      term_iteration--;
+    }
     //printf("doing the difficult stuff...\n");
     if (kind_of_termination == TERM_PREC)
     {
@@ -649,12 +660,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
       //(Sind natürlich in unterschiedlichen Iterationen)
       //Abstände des Treffens sind size Iterationen
       
-      int global_target_iterations;
+      //int global_target_iterations;
       
-      if( results->stat_precision > options->term_precision ) {
-        target_iterations = options->term_iteration + 1;
-        term_iteration++;
-      }
 
       //printf("reducing target iterations...\n");
 
@@ -665,7 +672,10 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
           MPI_MAX,
           MPI_COMM_WORLD);*/
 
-      term_iteration += global_target_iterations - target_iterations;
+      //term_iteration += global_target_iterations - target_iterations;
+      if(results->stat_precision >= options->term_precision) {
+        term_iteration++;
+      }
     }
 
 
