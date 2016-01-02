@@ -497,6 +497,8 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 	int num_rows = arguments->num_rows;
 	int predessor = (rank == 0)? NOBODY : rank - 1;
 	int successor = (rank == size-1)? NOBODY : rank + 1;
+  int target_iterations = options->term_iteration;
+  int global_target_iterations = target_iterations;
 
 	int term_iteration = options->term_iteration;
 	int kind_of_termination = options->termination;
@@ -512,8 +514,22 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		fpisin = 0.25 * TWO_PI_SQUARE * h * h;
 	}
 
+  for(i = 0; i < rank; i++) {
+    MPI_Allreduce( &target_iterations,
+        &global_target_iterations,
+        1,
+        MPI_INT,
+        MPI_MAX,
+        MPI_COMM_WORLD);
+    target_iterations = global_target_iterations;
+  }
+
 	while (term_iteration > 0)
 	{
+
+    if( !(term_iteration % 50) ) {
+      printf("target iterations: %d\n", target_iterations);
+    }
 
 		double** Matrix_Out = arguments->Matrix[m1];
 		double** Matrix_In  = arguments->Matrix[m2];
@@ -585,10 +601,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 		m1 = m2;
 		m2 = i;
 
-	       	if (kind_of_termination == TERM_ITER)
-		{
-			term_iteration--;
-		}
+    term_iteration--;
 		
 		if (kind_of_termination == TERM_PREC)
 		{
@@ -597,31 +610,22 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 			//ob die term_precision erreicht wurde
 			//(Sind natürlich in unterschiedlichen Iterationen)
 			//Abstände des Treffens sind size Iterationen
+      
+      int global_target_iterations;
+      
+      if( options->stat_precision > options->term_precision ) {
+        target_iterations = options->term_iteration + 1;
+        term_iteration++;
+      }
 
-			if((int) results->stat_iteration >= size - rank)
-			{
-				int local_kind_of_termination = kind_of_termination;
-				if (localmaxresiduum < options->term_precision)
-				{
-					local_kind_of_termination = TERM_ITER;
-				}
-				//Falls einer es schafft, so wechselt man
-				//in den Iterationsabbruch
-				MPI_Allreduce(  &local_kind_of_termination,
-						&kind_of_termination,
-						1,
-						MPI_INT,
-						MPI_MIN,
-						MPI_COMM_WORLD);
+      MPI_Allreduce( &target_iterations,
+          &global_target_iterations,
+          1,
+          MPI_INT,
+          MPI_MAX,
+          MPI_COMM_WORLD);
 
-				//und bringt alle Prozesse auf die Iteration
-				//von P0
-				if(kind_of_termination == TERM_ITER)
-				{
-					term_iteration = rank;
-				}
-			}
-
+      term_iteration += global_target_iterations - target_iterations;
 		}
 
 
@@ -646,7 +650,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 					N+1,
 					MPI_DOUBLE,
 					successor,
-					21,
+					21,  // TODO: wieso??
 					MPI_COMM_WORLD,
 					NULL);
 			}
