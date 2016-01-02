@@ -481,7 +481,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
   int m1, m2;                                 /* used as indices for old and new matrices       */
   double star;                                /* four times center value minus 4 neigh.b values */
   double residuum;                            /* residuum of current iteration                  */
-  double localmaxresiduum;                         /* maximum residuum value of a slave in iteration */
+  double localmaxresiduum;                    /* maximum residuum value of a slave in iteration */
   double globalmaxresiduum;
 
   int const N = arguments->N;
@@ -592,7 +592,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
     
     if (kind_of_termination == TERM_PREC)
     {
-      //Hier treffen sich alle parallellaufende
+      //Hier treffen sich alle parallel laufenden
       //Prozesse, um sich gegenseitig mitzuteilen
       //ob die term_precision erreicht wurde
       //(Sind natürlich in unterschiedlichen Iterationen)
