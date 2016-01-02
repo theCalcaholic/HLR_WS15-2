@@ -535,7 +535,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
 
   if( options->termination == TERM_PREC ) {
     for(i = 0; i < rank; i++) {
-      printf("rank %d: reducing default target iterations...\n", rank);
+      //printf("rank %d: reducing default target iterations...\n", rank);
       /*MPI_Allreduce( &target_iterations,
           &global_target_iterations,
           1,
@@ -549,7 +549,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
   {
 
     if( !(term_iteration % 1) ) {
-      printf("target iterations: %d\n", target_iterations);
+      //printf("target iterations: %d\n", target_iterations);
     }
 
     double** Matrix_Out = arguments->Matrix[m1];
@@ -558,7 +558,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
     //Hier warten alle auf die erste halo line (außer P0) des vorherigen Prozesses
     if(predessor != NOBODY)
     {
-      printf("rank %d: receiving first line.\n", rank);
+      //printf("rank %d: receiving first line.\n", rank);
       MPI_Recv(
         Matrix_In[0],
         N+1,
@@ -567,7 +567,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
         22,
         MPI_COMM_WORLD,
         NULL);
-      printf("rank %d: first line received.\n", rank);
+      //printf("rank %d: first line received.\n", rank);
     }
 
     localmaxresiduum = 0;
@@ -606,7 +606,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
       //Prozess gesendet werden
       if((i == 1) && (predessor != NOBODY) && ((term_iteration - 1) > 0) )
       {
-        printf("rank %d: send first row\n", rank);
+        //printf("rank %d: send first row\n", rank);
         MPI_Wait(&requests[0], &stats[0]);
         MPI_Isend(
           Matrix_Out[1],  //Matrix[g][0] ist ja seine eigene halo line!!
@@ -619,7 +619,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
       }
 
       if((i == num_rows - 3) && (successor != NOBODY) && ((term_iteration - 1) > 0) ) {
-        printf("rank %d: receive last row\n", rank);
+        //printf("rank %d: receive last row\n", rank);
         MPI_Recv(
           Matrix_In[num_rows-1],
           N+1,
@@ -640,7 +640,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
     m2 = i;
 
     term_iteration--;
-    printf("doing the difficult stuff...\n");
+    //printf("doing the difficult stuff...\n");
     if (kind_of_termination == TERM_PREC)
     {
       //Hier treffen sich alle parallellaufende
@@ -656,7 +656,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
         term_iteration++;
       }
 
-      printf("reducing target iterations...\n");
+      //printf("reducing target iterations...\n");
 
       /*MPI_Allreduce( &target_iterations,
           &global_target_iterations,
@@ -672,7 +672,7 @@ calculate_gauss (struct calculation_arguments const* arguments, struct calculati
     if(successor != NOBODY)
     {
 
-      printf("sending/receiving last line...\n");
+      //printf("sending/receiving last line...\n");
       //Hier wird die letzte line für die erste halo line an den nächsten
       //Prozess gesendet
       //MPI_Wait(&requests[1], &stats[1]);
