@@ -1030,10 +1030,10 @@ main (int argc, char** argv)
 
     gettimeofday(&start_time, NULL);                    /*  start timer         */
     calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
-    gettimeofday(&comp_time, NULL);                     /*  stop timer          */
+    if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
-    /*displayStatistics(&arguments, &results, &options);
-    DisplayMatrix(&arguments, &results, &options);*/
+    if(rank == 0) displayStatistics(&arguments, &results, &options);
+    DisplayMatrix2(&arguments, &results, &options);*/
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
@@ -1041,18 +1041,18 @@ main (int argc, char** argv)
   if ((options.method == METH_GAUSS_SEIDEL))
   {
 
-  initMpiVariables (&arguments);
-  allocateMpiMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
-  initMpiMatrices (&arguments,&options);
-  if(rank == 0) gettimeofday(&start_time, NULL);                    /*  start timer         */
+    initMpiVariables (&arguments);
+    allocateMpiMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
+    initMpiMatrices (&arguments,&options);
+    if(rank == 0) gettimeofday(&start_time, NULL);                    /*  start timer         */
 
-  calculate_gauss (&arguments,&results,&options);
+    calculate_gauss (&arguments,&results,&options);
 
-  if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
-  if(rank == 0) displayStatistics(&arguments, &results, &options);
+    if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
+    if(rank == 0) displayStatistics(&arguments, &results, &options);
 
-  DisplayMatrix2 (&arguments,&results,&options,arguments.rank,arguments.size,arguments.from,arguments.to);
-  freeMatrices(&arguments);
+    DisplayMatrix2 (&arguments,&results,&options,arguments.rank,arguments.size,arguments.from,arguments.to);
+    freeMatrices(&arguments);
   }
 
   MPI_Finalize();             //beendet MPI
