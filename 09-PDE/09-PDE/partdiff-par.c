@@ -562,7 +562,7 @@ calculate_jacobi (
       // After second row is calculated, send it to predecessor and be ready to receive first row
       if( i == 1 && predecessor != NOBODY) {
         MPI_Isend(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[0]);
-        MPI_Irecv(Matrix_Recv[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
+        MPI_Irecv(Matrix_In[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
       }
     }
 
