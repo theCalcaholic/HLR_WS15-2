@@ -304,7 +304,7 @@ calculate2 (
           maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
 					maxresiduum_send = maxresiduum;
 					//printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
-					MPI_Allreduce(&maxresiduum_send, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+					MPI_Allreduce(MPI_IN_PLACE, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
 					//if(arguments->rank == 0) printf("global maxresiduum=%f\n", maxresiduum);
         }
 
