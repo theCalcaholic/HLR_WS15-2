@@ -1032,8 +1032,8 @@ main (int argc, char** argv)
     calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
     gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
-    displayStatistics(&arguments, &results, &options);
-    DisplayMatrix(&arguments, &results, &options);
+    /*displayStatistics(&arguments, &results, &options);
+    DisplayMatrix(&arguments, &results, &options);*/
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
