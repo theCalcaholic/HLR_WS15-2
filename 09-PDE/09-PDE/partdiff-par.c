@@ -1017,14 +1017,15 @@ main (int argc, char** argv)
   if ((options.method == METH_JACOBI) && (arguments.rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
   {
 
-    allocateMatrices(&arguments);             /*  get and initialize variables and matrices  */
-    initMatrices(&arguments, &options);          
+    initMpiVariables(&arguments);
+    allocateMpiMatrices(&arguments);             /*  get and initialize variables and matrices  */
+    initMpiMatrices(&arguments, &options);
 
-    gettimeofday(&start_time, NULL);                    /*  start timer         */
+    if( rank==0 ) gettimeofday(&start_time, NULL);                    /*  start timer         */
     calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
-    if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
+    //if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
-    if(rank == 0) displayStatistics(&arguments, &results, &options);
+    //if(rank == 0) displayStatistics(&arguments, &results, &options);
     /*DisplayMatrix2(&arguments, &results, &options, arguments.rank, arguments.size, arguments.from, arguments.to);*/
 
     freeMatrices(&arguments);                           /*  free memory     */
