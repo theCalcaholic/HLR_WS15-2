@@ -990,7 +990,6 @@ int
 main (int argc, char** argv)
 {
 
-  printf("main");
   struct options options;
   struct calculation_arguments arguments;
   struct calculation_results results;
@@ -1000,11 +999,13 @@ main (int argc, char** argv)
   MPI_Comm_size(MPI_COMM_WORLD, &arguments.size);           // Anzahl der P holen
   int rank = arguments.rank;
 
+  printf("main");
   if(arguments.rank == 0)
   {
     /* get parameters */
     AskParams(&options, argc, argv);              
   }
+  printf("main2");
   
   //Der unschöne Weg! Broadcastet jede Variable in options.
   MPI_Bcast(&(options.number),1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
