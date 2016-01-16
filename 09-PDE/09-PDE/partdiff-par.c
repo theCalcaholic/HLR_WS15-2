@@ -1033,7 +1033,7 @@ main (int argc, char** argv)
     if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
     if(rank == 0) displayStatistics(&arguments, &results, &options);
-    DisplayMatrix2(&arguments, &results, &options);*/
+    /*DisplayMatrix2(&arguments, &results, &options, arguments.rank, arguments.size, arguments.from, arguments.to);*/
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
