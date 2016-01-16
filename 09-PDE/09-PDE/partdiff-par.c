@@ -62,6 +62,8 @@ struct calculation_results
 struct timeval start_time;       /* time when program started                      */
 struct timeval comp_time;        /* time when calculation completed                */
 
+const int MAT_EXCHANGE_TAG = 12;
+
 
 /* ************************************************************************ */
 /* initVariables: Initializes some global variables                         */
@@ -611,6 +613,7 @@ calculate_jacobi (
   results->m = m2;
 	MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
 	results->stat_precision = maxresiduum;
+}
 
 /* ************************************************************************ */
 /* calculate_gauss: solves the equation                                           */
