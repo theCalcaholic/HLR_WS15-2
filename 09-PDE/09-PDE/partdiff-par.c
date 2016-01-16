@@ -1013,7 +1013,7 @@ main (int argc, char** argv)
   MPI_Bcast(&(options.term_iteration),1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
   MPI_Bcast(&(options.term_precision),1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   
-  print("initVariables");
+  printf("initVariables");
   initVariables(&arguments, &results, &options);           
 
   if ((options.method == METH_JACOBI) && (arguments.rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
