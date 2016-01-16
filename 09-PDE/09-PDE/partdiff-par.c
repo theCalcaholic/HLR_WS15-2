@@ -1023,6 +1023,7 @@ main (int argc, char** argv)
     initMpiMatrices(&arguments, &options);
 
     if( rank==0 ) gettimeofday(&start_time, NULL);                    /*  start timer         */
+    printf("calculate_jacobi...");
     calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
     if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
