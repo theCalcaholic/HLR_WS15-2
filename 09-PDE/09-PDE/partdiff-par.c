@@ -506,16 +506,8 @@ calculate_jacobi (
   int term_iteration = options->term_iteration;
 
   /* initialize m1 and m2 depending on algorithm */
-  if (options->method == METH_JACOBI)
-  {
-    m1 = 0;
-    m2 = 1;
-  }
-  else
-  {
-    m1 = 0;
-    m2 = 0;
-  }
+  m1 = 0;
+  m2 = 1;
 
   if (options->inf_func == FUNC_FPISIN)
   {
@@ -594,7 +586,7 @@ calculate_jacobi (
     if (options->termination == TERM_PREC)
     {
 			// should get the global maxresiduum -  no idea why it doesn't work
-			MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+			MPI_Allreduce(MPI_IN_PLACE, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
       if (maxresiduum < options->term_precision)
       {
         term_iteration = 0;
@@ -611,7 +603,7 @@ calculate_jacobi (
   }
 
   results->m = m2;
-	MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+	MPI_Allreduce(MPI_IN_PLACE, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
 	results->stat_precision = maxresiduum;
 }
 
