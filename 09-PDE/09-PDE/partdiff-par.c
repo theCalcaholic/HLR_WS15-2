@@ -989,6 +989,8 @@ DisplayMatrix2 (struct calculation_arguments* arguments, struct calculation_resu
 int
 main (int argc, char** argv)
 {
+
+  printf("main");
   struct options options;
   struct calculation_arguments arguments;
   struct calculation_results results;
