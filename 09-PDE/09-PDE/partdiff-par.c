@@ -418,6 +418,7 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
     /* over all rows */
     for (i = 1; i < N; i++)
     {
+      printf("rank %d: iteration %d", arguments->rank, i);
       double fpisin_i = 0.0;
 
       if (options->inf_func == FUNC_FPISIN)
@@ -561,7 +562,7 @@ calculate_jacobi (
       // After second row is calculated, send it to predecessor and be ready to receive first row
       if( i == 1 && predecessor != NOBODY) {
         MPI_Isend(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[0]);
-        MPI_Irecv(Matrix_Out[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
+        MPI_Irecv(Matrix_Recv[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
       }
     }
 
@@ -1023,10 +1024,10 @@ main (int argc, char** argv)
 
     if( rank==0 ) gettimeofday(&start_time, NULL);                    /*  start timer         */
     calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
-    //if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
+    if(rank == 0) gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
-    //if(rank == 0) displayStatistics(&arguments, &results, &options);
-    /*DisplayMatrix2(&arguments, &results, &options, arguments.rank, arguments.size, arguments.from, arguments.to);*/
+    if(rank == 0) displayStatistics(&arguments, &results, &options);
+    DisplayMatrix2(&arguments, &results, &options, arguments.rank, arguments.size, arguments.from, arguments.to);
 
     freeMatrices(&arguments);                           /*  free memory     */
   }
