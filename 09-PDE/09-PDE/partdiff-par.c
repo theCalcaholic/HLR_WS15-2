@@ -469,6 +469,148 @@ calculate (struct calculation_arguments const* arguments, struct calculation_res
   results->m = m2;
 }
 
+/* ************************************************************************ */
+/* calculate_jacobi: solves the equation                                           */
+/* ************************************************************************ */
+static
+void
+calculate_jacobi (
+  struct calculation_arguments const* arguments, 
+  struct calculation_results *results, 
+  struct options const* options
+){
+
+  int i, j;                                   /* local variables for loops  */
+  int m1, m2;                                 /* used as indices for old and new matrices       */
+  double star;                                /* four times center value minus 4 neigh.b values */
+  double residuum;                            /* residuum of current iteration                  */
+  double maxresiduum;                         /* maximum residuum value of a slave in iteration */
+  MPI_Request predecessor_requests[2];
+  MPI_Request successor_requests[2];
+  MPI_Status stats[2];
+  int rank, from, size;
+
+  size = arguments->size;
+  rank = arguments->rank;
+  from = arguments->from;
+
+  int const N = arguments->N;
+  int const num_rows = arguments->num_rows;
+  double const h = arguments->h;
+
+  double pih = 0.0;
+  double fpisin = 0.0;
+
+  int term_iteration = options->term_iteration;
+
+  /* initialize m1 and m2 depending on algorithm */
+  if (options->method == METH_JACOBI)
+  {
+    m1 = 0;
+    m2 = 1;
+  }
+  else
+  {
+    m1 = 0;
+    m2 = 0;
+  }
+
+  if (options->inf_func == FUNC_FPISIN)
+  {
+    pih = PI * h;
+    fpisin = 0.25 * TWO_PI_SQUARE * h * h;
+  }
+
+  while (term_iteration > 0)
+  {
+    double** Matrix_Out = arguments->Matrix[m1];
+    double** Matrix_In  = arguments->Matrix[m2];
+
+    maxresiduum = 0;
+
+    int predecessor = (rank == 0) ? NOBODY : rank-1;
+    int successor = (rank == size - 1) ? NOBODY : rank + 1;
+
+
+
+    /* over all rows */
+    for (i = 1; i < num_rows - 1; i++)
+    {
+      double fpisin_i = 0.0;
+
+      if (options->inf_func == FUNC_FPISIN)
+      {
+        fpisin_i = fpisin * sin(pih * (double)(i + from));
+      }
+
+      /* over all columns */
+      for (j = 1; j < N; j++)
+      {
+        star = 0.25 * (Matrix_In[i-1][j] + Matrix_In[i][j-1] + Matrix_In[i][j+1] + Matrix_In[i+1][j]);
+
+        if (options->inf_func == FUNC_FPISIN)
+        {
+          star += fpisin_i * sin(pih * (double)j);
+        }
+
+        if (options->termination == TERM_PREC || term_iteration == 1)
+        {
+          residuum = Matrix_In[i][j] - star;
+          residuum = (residuum < 0) ? -residuum : residuum;
+          maxresiduum = (residuum < maxresiduum) ? maxresiduum : residuum;
+          //if(i % 120 == 0) printf("rank %d: local maxresiduum=%f\n", arguments->rank, maxresiduum);
+        }
+
+        Matrix_Out[i][j] = star;
+      }
+
+      // After second row is calculated, send it to predecessor and be ready to receive first row
+      if( i == 1 && predecessor != NOBODY) {
+        MPI_Isend(Matrix_Out[1], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[0]);
+        MPI_Irecv(Matrix_Out[0], N + 1, MPI_DOUBLE, predecessor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &predecessor_requests[1]);
+      }
+    }
+
+    // After second last row is calculated, send it to successor and be ready to receive last row
+    if(successor != NOBODY)     MPI_Isend(Matrix_Out[num_rows - 2], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[0]);
+    if(successor != NOBODY)     MPI_Irecv(Matrix_Out[num_rows - 1], N + 1, MPI_DOUBLE, successor, MAT_EXCHANGE_TAG, MPI_COMM_WORLD, &successor_requests[1]);
+
+    if(predecessor != NOBODY) 
+      MPI_Waitall(2, predecessor_requests, stats);
+    if(successor != NOBODY)
+      MPI_Waitall(2, successor_requests, stats);
+
+
+
+
+    /* exchange m1 and m2 */
+    i = m1;
+    m1 = m2;
+    m2 = i;
+
+    /* check for stopping calculation, depending on termination method */
+    if (options->termination == TERM_PREC)
+    {
+			// should get the global maxresiduum -  no idea why it doesn't work
+			MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+      if (maxresiduum < options->term_precision)
+      {
+        term_iteration = 0;
+      }
+			//if(rank == 0) printf("global maxresiduum: %d\n", maxresiduum);
+    }
+    else if (options->termination == TERM_ITER)
+    {
+      term_iteration--;
+    }
+
+    results->stat_iteration++;
+    results->stat_precision = maxresiduum;
+  }
+
+  results->m = m2;
+	MPI_Allreduce(&maxresiduum, &maxresiduum, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD); //maximiert maxresiduum auf alle Prozesse
+	results->stat_precision = maxresiduum;
 
 /* ************************************************************************ */
 /* calculate_gauss: solves the equation                                           */
@@ -884,7 +1026,7 @@ main (int argc, char** argv)
     initMatrices(&arguments, &options);          
 
     gettimeofday(&start_time, NULL);                    /*  start timer         */
-    calculate(&arguments, &results, &options);          /*  solve the equation  */
+    calculate_jacobi(&arguments, &results, &options);          /*  solve the equation  */
     gettimeofday(&comp_time, NULL);                     /*  stop timer          */
 
     displayStatistics(&arguments, &results, &options);
