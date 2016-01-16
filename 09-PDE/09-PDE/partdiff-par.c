@@ -1040,6 +1040,8 @@ main (int argc, char** argv)
   if ((options.method == METH_GAUSS_SEIDEL))
   {
 
+    printf("gauss_seidel...");
+
     initMpiVariables (&arguments);
     allocateMpiMatrices(&arguments); //TODO: Allokiert zu viel! Da kein Platzmangel, schadet es auch nicht.
     initMpiMatrices (&arguments,&options);
