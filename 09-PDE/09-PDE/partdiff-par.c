@@ -1018,8 +1018,11 @@ main (int argc, char** argv)
   if ((options.method == METH_JACOBI) && (arguments.rank == 0))     // Bei nicht Jacobi einfach das Vorherige mit P 0 tun.
   {
 
+    printf("initMpiVariables");
     initMpiVariables(&arguments);
+    printf("allocateMpiMatrices");
     allocateMpiMatrices(&arguments);             /*  get and initialize variables and matrices  */
+    printf("initMpiMatrices");
     initMpiMatrices(&arguments, &options);
 
     if( rank==0 ) gettimeofday(&start_time, NULL);                    /*  start timer         */
